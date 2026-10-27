@@ -1,0 +1,14 @@
+# Godot 4
+.godot/
+/android/
+export/
+*.translation
+
+# OS and editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Personal files
+CLAUDE.md

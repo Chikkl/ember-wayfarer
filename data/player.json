@@ -1,0 +1,12 @@
+{
+  "_doc": "docs/systems/movement-stamina.md",
+  "move_speed": 4.0,
+  "move_accel_time": 0.08,
+  "stamina_max": 100,
+  "stamina_regen": 25.0,
+  "stamina_regen_delay": 0.8,
+  "fatigue_rate": 0.03,
+  "fatigue_floor": 40,
+  "exhaust_duration": 1.5,
+  "exhaust_speed_mult": 0.7
+}
