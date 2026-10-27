@@ -1,5 +1,5 @@
-id,name,group,comfort,creates_camp,settler_slots
-campfire,Костёр,fire,2,true,0
-log_seat,Бревно-сиденье,seat,1,false,0
-bedroll,Лежанка из листьев,sleep,2,false,1
-lean_to,Навес,shelter,2,false,0
+id,name,group,comfort,creates_camp
+campfire,Костёр,fire,2,true
+log_seat,Бревно-сиденье,seat,1,false
+bedroll,Лежанка из листьев,sleep,2,false
+lean_to,Навес,shelter,2,false
