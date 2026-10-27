@@ -5,7 +5,7 @@
 | Файл | Что внутри | Спецификация |
 | --- | --- | --- |
 | `player.json` | Движение, выносливость, усталость | [movement-stamina.md](../docs/systems/movement-stamina.md) |
-| `comfort.json` | Лагерь, отдых, приход поселенцев | [comfort.md](../docs/systems/comfort.md) |
+| `comfort.json` | Лагерь и отдых | [comfort.md](../docs/systems/comfort.md) |
 | `comfort_items.csv` | Предметы комфорта и их группы | [comfort.md](../docs/systems/comfort.md) |
 
 ## Правила
