@@ -1,0 +1,9 @@
+id,name,kind,materials,tools,time,xp
+chopper,Рубило,item,stone:2,,2,4
+shaped_stick,Обработанная палка,item,stick:1,chopper,2,3
+stone_axe,Каменный топор,item,chopper:1;shaped_stick:1,,2,10
+basket,Плетёная корзина,building,stick:6;leaves:4,,2,6
+bedroll,Лежанка из листьев,building,stick:2;leaves:10,,2,6
+log_seat,Бревно-сиденье,building,log:1,,1.5,4
+lean_to,Навес,building,log:2;stick:6;leaves:8,,3,12
+hut,Шалаш,building,log:4;stick:10;leaves:16,,5,25
