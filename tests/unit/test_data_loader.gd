@@ -37,7 +37,7 @@ func test_player_json_has_every_spec_parameter() -> void:
 
 
 func test_data_used_by_the_prototype_exists() -> void:
-	for key in ["camp_radius", "rest_fatigue_base", "rest_per_comfort"]:
+	for key in ["camp_radius", "rest_fatigue_base", "rest_per_comfort", "rest_regen_per_comfort"]:
 		assert_has(DataLoader.load_json("res://data/comfort.json"), key)
 	assert_has(DataLoader.load_json("res://data/gathering.json"), "hit_interval")
 	var nodes := DataLoader.index_by(DataLoader.load_csv("res://data/resource_nodes.csv"), "id")

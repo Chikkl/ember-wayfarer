@@ -43,9 +43,12 @@ func _physics_process(delta: float) -> void:
 	_move(input, delta)
 	_debug_work(delta)
 	var rest_rate := 0.0
+	var regen_mult := 1.0
 	if is_resting:
-		rest_rate = CampComfort.rest_rate(current_comfort(), _rest_params)
-	stamina.update(delta, rest_rate)
+		var comfort := current_comfort()
+		rest_rate = CampComfort.rest_rate(comfort, _rest_params)
+		regen_mult = CampComfort.rest_regen_mult(comfort, _rest_params)
+	stamina.update(delta, rest_rate, regen_mult)
 	_hit_flash = maxf(_hit_flash - delta, 0.0)
 	queue_redraw()
 

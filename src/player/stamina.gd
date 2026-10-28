@@ -79,8 +79,9 @@ func spend(cost: float) -> bool:
 
 
 ## Advances time. [param rest_rate] is fatigue removed per second while resting,
-## zero when the player is not resting.
-func update(delta: float, rest_rate := 0.0) -> void:
+## zero when the player is not resting. [param regen_mult] scales stamina regen,
+## comfort raises it while resting.
+func update(delta: float, rest_rate := 0.0, regen_mult := 1.0) -> void:
 	if exhaust_time_left > 0.0:
 		exhaust_time_left = maxf(exhaust_time_left - delta, 0.0)
 		# If regen_delay is tuned longer than exhaustion, regen starts as soon as
@@ -92,7 +93,7 @@ func update(delta: float, rest_rate := 0.0) -> void:
 		fatigue = maxf(fatigue - rest_rate * delta, 0.0)
 	var regen_time := minf(delta, _since_spend - _regen_delay)
 	if regen_time > 0.0:
-		value = minf(value + _regen * regen_time, available_max())
+		value = minf(value + _regen * regen_mult * regen_time, available_max())
 
 
 ## Walking speed multiplier from exhaustion.

@@ -131,6 +131,13 @@ func test_rest_removes_fatigue_at_given_rate() -> void:
 	assert_eq(stamina.fatigue, 0.0, "Fatigue never goes below zero")
 
 
+func test_regen_mult_speeds_up_regen() -> void:
+	stamina.spend(8.0)
+	stamina.update(0.8)
+	stamina.update(0.1, 0.0, 2.0)
+	assert_almost_eq(stamina.value, 97.0, EPS, "Double regen gives 5 in 0.1 s")
+
+
 func test_value_follows_growing_max_while_resting() -> void:
 	stamina.fatigue = 30.0
 	stamina.value = 70.0

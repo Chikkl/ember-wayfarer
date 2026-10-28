@@ -25,3 +25,9 @@ static func compute(item_ids: Array[String], item_table: Dictionary) -> int:
 ## [param params] is data/comfort.json.
 static func rest_rate(comfort: int, params: Dictionary) -> float:
 	return float(params.rest_fatigue_base) + comfort * float(params.rest_per_comfort)
+
+
+## Stamina regen multiplier while resting at [param comfort].
+## [param params] is data/comfort.json.
+static func rest_regen_mult(comfort: int, params: Dictionary) -> float:
+	return 1.0 + comfort * float(params.rest_regen_per_comfort)
