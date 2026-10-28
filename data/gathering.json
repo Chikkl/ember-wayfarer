@@ -1,0 +1,10 @@
+{
+  "_doc": "docs/systems/gathering.md",
+  "inventory_slots": 16,
+  "carry_limit": 50,
+  "overload_cap": 1.5,
+  "overload_speed_min": 0.5,
+  "pickup_radius": 1.5,
+  "basket_slots": 8,
+  "ground_item_lifetime": 300
+}
