@@ -1,0 +1,47 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/main.gd" id="1_main"]
+[ext_resource type="Script" path="res://src/world/ground.gd" id="2_ground"]
+[ext_resource type="PackedScene" path="res://src/camp/campfire.tscn" id="3_fire"]
+[ext_resource type="PackedScene" path="res://src/player/player.tscn" id="4_player"]
+[ext_resource type="Script" path="res://src/ui/hud.gd" id="5_hud"]
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_main")
+
+[node name="Ground" type="Node2D" parent="."]
+script = ExtResource("2_ground")
+
+[node name="World" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="Campfire" parent="World" instance=ExtResource("3_fire")]
+
+[node name="Player" parent="World" instance=ExtResource("4_player")]
+position = Vector2(36, 44)
+
+[node name="Hud" type="CanvasLayer" parent="." node_paths=PackedStringArray("player")]
+script = ExtResource("5_hud")
+player = NodePath("../World/Player")
+
+[node name="Comfort" type="Label" parent="Hud"]
+offset_left = 16.0
+offset_top = 12.0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 20
+
+[node name="Debug" type="Label" parent="Hud"]
+offset_left = 16.0
+offset_top = 42.0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 14
+
+[node name="Hint" type="Label" parent="Hud"]
+offset_left = 16.0
+offset_top = 66.0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 14
+text = "WASD — ходить · R — сесть или встать · Пробел (удерживать) — отладочная работа"
