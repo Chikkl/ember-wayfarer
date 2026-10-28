@@ -7,6 +7,8 @@
 | `player.json` | Движение, выносливость, усталость | [movement-stamina.md](../docs/systems/movement-stamina.md) |
 | `comfort.json` | Лагерь и отдых | [comfort.md](../docs/systems/comfort.md) |
 | `comfort_items.csv` | Предметы комфорта и их группы | [comfort.md](../docs/systems/comfort.md) |
+| `progression.json` | Опыт, уровни, очки развития | [tech-tree.md](../docs/systems/tech-tree.md) |
+| `recipe_tree.csv` | Узлы дерева рецептов; требования через `;` | [tech-tree.md](../docs/systems/tech-tree.md) |
 
 ## Правила
 
