@@ -1,0 +1,5 @@
+id,name,weight,stack_max,xp
+stick,Ветка,1,99,1
+stone,Камень,2,99,1
+leaves,Листья,1,99,1
+log,Бревно,10,20,4
