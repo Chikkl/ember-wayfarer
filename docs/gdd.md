@@ -10,7 +10,7 @@
 | --- | --- | --- | --- |
 | Движение и выносливость | [systems/movement-stamina.md](systems/movement-stamina.md) | Ядро, шаг 1 | Черновик v0.2 |
 | Комфорт | [systems/comfort.md](systems/comfort.md) | Ядро, шаг 1 | Черновик v0.2 |
-| Сбор ресурсов | [systems/gathering.md](systems/gathering.md) | Ядро, шаг 1 | Черновик v0.1 |
+| Сбор ресурсов | [systems/gathering.md](systems/gathering.md) | Ядро, шаг 1 | Черновик v0.2 |
 | Крафт | [systems/crafting.md](systems/crafting.md) | Ядро, шаг 1 | Не начат |
 | Дерево рецептов и опыт | [systems/tech-tree.md](systems/tech-tree.md) | Ядро, шаг 1 | Черновик v0.1 |
 | Жители | [systems/villagers.md](systems/villagers.md) | Колония | Не начат |

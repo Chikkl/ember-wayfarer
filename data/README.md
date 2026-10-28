@@ -8,8 +8,8 @@
 | `comfort.json` | Лагерь и отдых | [comfort.md](../docs/systems/comfort.md) |
 | `comfort_items.csv` | Предметы комфорта и их группы | [comfort.md](../docs/systems/comfort.md) |
 | `progression.json` | Опыт, уровни, очки развития | [tech-tree.md](../docs/systems/tech-tree.md) |
-| `recipe_tree.csv` | Узлы дерева рецептов; требования через `;` | [tech-tree.md](../docs/systems/tech-tree.md) |
-| `gathering.json` | Инвентарь, вес, перегруз | [gathering.md](../docs/systems/gathering.md) |
+| `recipe_tree.csv` | Узлы дерева рецептов; открываемые рецепты и требования через `;` | [tech-tree.md](../docs/systems/tech-tree.md) |
+| `gathering.json` | Инвентарь, вес, перегруз, корзина, предметы на земле | [gathering.md](../docs/systems/gathering.md) |
 | `items.csv` | Предметы: вес, стопка, опыт | [gathering.md](../docs/systems/gathering.md) |
 | `resource_nodes.csv` | Объекты в мире; добыча в виде `id:количество` через `;`, `drop_mode`: `per_hit` или `on_last_hit` | [gathering.md](../docs/systems/gathering.md) |
 
