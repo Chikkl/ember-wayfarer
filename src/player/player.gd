@@ -18,10 +18,13 @@ const SHADOW_COLOR := Color(0, 0, 0, 0.25)
 const HANDLE_COLOR := Color("8a6238")
 const TOOL_HEAD_COLOR := Color("8c8a86")
 const HINT_COLOR := Color("ffb37a")
+const BUNDLE_COLOR := Color("9b7a4c")
 const HIT_FLASH_TIME := 0.12
+## A dropped pile lands this many tiles in front of the player.
+const DROP_DISTANCE_TILES := 0.8
 
 var stamina: Stamina
-var inventory := Inventory.new()
+var inventory: Inventory
 var is_resting := false
 var facing := Facing.DOWN
 
@@ -43,6 +46,7 @@ func _ready() -> void:
 	_accel_time = maxf(float(params.move_accel_time), 0.001)
 	_rest_params = GameData.params("comfort")
 	var gathering := GameData.params("gathering")
+	inventory = Inventory.new(gathering, GameData.table("items"))
 	_work = WorkRhythm.new(float(gathering.hit_interval))
 	_interact_radius_px = float(gathering.interact_radius) * Units.TILE_PX
 	motion_mode = MOTION_MODE_FLOATING
@@ -71,11 +75,27 @@ func current_comfort() -> int:
 	return Camp.comfort_at(get_tree(), global_position)
 
 
-## An item from the ground goes into the inventory.
-func pick_up(item_id: String) -> void:
-	inventory.add(item_id)
+## Items from the ground go into the inventory. The caller checks
+## [method Inventory.carry_amount] first.
+func pick_up(item_id: String, amount := 1) -> void:
+	inventory.add(item_id, amount)
 	var item_name: String = GameData.table("items")[item_id].name
-	FloatingText.spawn(get_parent(), position + Vector2(0, -52), "+1 %s" % item_name)
+	FloatingText.spawn(get_parent(), position + Vector2(0, -52), "+%d %s" % [amount, item_name])
+
+
+## Drops one item from slot [param index], or the whole stack, in front of the player.
+## The pile is not pulled back until the player walks away from it.
+func drop_from_slot(index: int, whole_stack: bool) -> void:
+	var taken := inventory.take(index, inventory.slots[index].get("count", 0) if whole_stack else 1)
+	if taken.is_empty():
+		return
+	var item := GroundItem.new()
+	item.item_id = taken.item_id
+	item.count = taken.count
+	item.position = position
+	item.land_at = position + _facing_vector() * DROP_DISTANCE_TILES * Units.TILE_PX
+	item.wait_for_player_to_leave = true
+	get_parent().add_child(item)
 
 
 ## The workable node nearest to [param origin] within [param radius], or null.
@@ -113,7 +133,7 @@ static func facing_for(input: Vector2, current: Facing) -> Facing:
 
 
 func _move(input: Vector2, delta: float) -> void:
-	var target := input * _move_speed_px * stamina.speed_mult()
+	var target := input * _move_speed_px * stamina.speed_mult() * inventory.speed_mult()
 	if is_resting:
 		target = Vector2.ZERO
 	var accel := _move_speed_px / _accel_time
@@ -175,8 +195,23 @@ func _set_highlight(node: ResourceNode) -> void:
 
 ## Temporary until crafting: the debug key gives the stone axe.
 func _debug_give_tool() -> void:
-	if Input.is_action_just_pressed("debug_give_tool") and inventory.count(DEBUG_TOOL) == 0:
+	if not Input.is_action_just_pressed("debug_give_tool") or inventory.count(DEBUG_TOOL) > 0:
+		return
+	if inventory.carry_amount(DEBUG_TOOL) > 0:
 		pick_up(DEBUG_TOOL)
+	else:
+		FloatingText.spawn(get_parent(), position + Vector2(0, -52), "не унести", HINT_COLOR)
+
+
+func _facing_vector() -> Vector2:
+	match facing:
+		Facing.UP:
+			return Vector2.UP
+		Facing.LEFT:
+			return Vector2.LEFT
+		Facing.RIGHT:
+			return Vector2.RIGHT
+	return Vector2.DOWN
 
 
 func _draw() -> void:
@@ -192,6 +227,10 @@ func _draw() -> void:
 	elif stamina.is_exhausted():
 		draw_rect(Rect2(-8, -22, 16, 18), body_color)
 		head = Vector2(3 if facing != Facing.LEFT else -3, -26)
+	elif inventory.carried_weight() > inventory.carry_limit():
+		draw_rect(Rect2(-9, -33, 18, 10), BUNDLE_COLOR)
+		draw_rect(Rect2(-8, -23, 16, 19), body_color)
+		head = Vector2(0, -28)
 	else:
 		draw_rect(Rect2(-8, -26, 16, 22), body_color)
 	draw_circle(head, 7.0, SKIN_COLOR)

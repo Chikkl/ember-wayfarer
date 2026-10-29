@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" path="res://src/camp/campfire.tscn" id="3_fire"]
 [ext_resource type="PackedScene" path="res://src/player/player.tscn" id="4_player"]
 [ext_resource type="Script" path="res://src/ui/hud.gd" id="5_hud"]
+[ext_resource type="Script" path="res://src/ui/inventory_bar.gd" id="6_inventory"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
@@ -38,17 +39,13 @@ theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 4
 theme_override_font_sizes/font_size = 14
 
-[node name="Inventory" type="Label" parent="Hud"]
+[node name="Inventory" type="Control" parent="Hud"]
+script = ExtResource("6_inventory")
+
+[node name="Hint" type="Label" parent="Hud"]
 offset_left = 16.0
 offset_top = 66.0
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 4
 theme_override_font_sizes/font_size = 14
-
-[node name="Hint" type="Label" parent="Hud"]
-offset_left = 16.0
-offset_top = 90.0
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 4
-theme_override_font_sizes/font_size = 14
-text = "WASD — ходить · R — сесть или встать · E (удерживать) — собирать · F1 — отладка: каменный топор"
+text = "WASD — ходить · R — сесть или встать · E (удерживать) — собирать · ЛКМ / ПКМ по ячейке — выбросить один / стопку · F1 — отладка: каменный топор"

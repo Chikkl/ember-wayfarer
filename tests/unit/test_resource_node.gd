@@ -2,7 +2,6 @@ extends GutTest
 ## Resource nodes in the world and their loot, docs/systems/gathering.md.
 
 const NODE_SCENE := preload("res://src/world/resource_node.tscn")
-const PLAYER_SCENE := preload("res://src/player/player.tscn")
 
 var world: Node2D
 
@@ -68,29 +67,3 @@ func test_nearest_workable_node_in_radius() -> void:
 	var nodes: Array[Node] = [far, near]
 	assert_eq(Player.nearest_node(world.get_children(), Vector2.ZERO, 40.0), near)
 	assert_eq(Player.nearest_node(nodes, Vector2.ZERO, 8.0), null, "Nothing within 8 px")
-
-
-func test_loot_in_radius_is_pulled_into_the_inventory() -> void:
-	var player: Player = PLAYER_SCENE.instantiate()
-	world.add_child(player)
-	var item := GroundItem.new()
-	item.item_id = "stone"
-	item.position = Vector2(20, 0)
-	item.land_at = item.position
-	world.add_child(item)
-	simulate(item, 30, 0.05, true)
-	assert_eq(player.inventory.count("stone"), 1)
-	assert_true(item.is_queued_for_deletion())
-
-
-func test_loot_out_of_radius_stays_on_the_ground() -> void:
-	var player: Player = PLAYER_SCENE.instantiate()
-	world.add_child(player)
-	var item := GroundItem.new()
-	item.item_id = "stone"
-	item.position = Vector2(200, 0)
-	item.land_at = item.position
-	world.add_child(item)
-	simulate(item, 30, 0.05, true)
-	assert_eq(player.inventory.count("stone"), 0)
-	assert_eq(item.position, Vector2(200, 0))

@@ -1,23 +1,108 @@
 class_name Inventory
 extends RefCounted
-## Items the player carries. For now only counts: slots, stacks and weight
-## come with the inventory step. Rules: docs/systems/gathering.md, "Инвентарь".
+## Items the player carries: slots with stacks and the weight of the load.
+## Rules: docs/systems/gathering.md, "Инвентарь". Values: data/gathering.json, data/items.csv.
 
-var _counts := {}
+## One slot per entry: {"item_id": String, "count": int}, an empty slot is an empty Dictionary.
+var slots: Array[Dictionary] = []
+
+var _items: Dictionary
+var _carry_limit: float
+var _carry_cap: float
+var _speed_min: float
 
 
-func add(item_id: String, amount := 1) -> void:
-	_counts[item_id] = count(item_id) + amount
+func _init(params: Dictionary, items: Dictionary) -> void:
+	_items = items
+	_carry_limit = float(params.carry_limit)
+	_carry_cap = _carry_limit * float(params.overload_cap)
+	_speed_min = float(params.overload_speed_min)
+	for i in int(params.inventory_slots):
+		slots.append({})
 
 
 func count(item_id: String) -> int:
-	return _counts.get(item_id, 0)
+	var total := 0
+	for slot in slots:
+		if slot.get("item_id") == item_id:
+			total += slot.count
+	return total
 
 
-## Ids of the items the player has, in the order they were first added.
-func item_ids() -> Array[String]:
-	var ids: Array[String] = []
-	for item_id: String in _counts:
-		if _counts[item_id] > 0:
-			ids.append(item_id)
-	return ids
+## Total weight of everything the player carries.
+func carried_weight() -> float:
+	var total := 0.0
+	for slot in slots:
+		if not slot.is_empty():
+			total += float(_items[slot.item_id].weight) * slot.count
+	return total
+
+
+func carry_limit() -> float:
+	return _carry_limit
+
+
+## Above this load nothing can be picked up.
+func carry_cap() -> float:
+	return _carry_cap
+
+
+## Walking speed multiplier from the load: 1 up to the limit, then down to
+## overload_speed_min at the cap.
+func speed_mult() -> float:
+	var over := inverse_lerp(_carry_limit, _carry_cap, carried_weight())
+	return lerpf(1.0, _speed_min, clampf(over, 0.0, 1.0))
+
+
+## How many of [param item_id] still fit: stacks of it get topped up first,
+## a new kind of item needs a free slot.
+func space_for(item_id: String) -> int:
+	var stack_max := int(_items[item_id].stack_max)
+	var space := 0
+	for slot in slots:
+		if slot.is_empty():
+			space += stack_max
+		elif slot.item_id == item_id:
+			space += stack_max - slot.count
+	return space
+
+
+## How many of [param wanted] the player can pick up: they must fit into the slots,
+## and the load after the pickup must not go above the cap.
+func carry_amount(item_id: String, wanted := 1) -> int:
+	var weight := float(_items[item_id].weight)
+	var by_weight := wanted
+	if weight > 0.0:
+		by_weight = floori((_carry_cap - carried_weight()) / weight + 0.0001)
+	return clampi(mini(wanted, mini(space_for(item_id), by_weight)), 0, wanted)
+
+
+## Adds up to [param amount] items by slot rules, ignoring weight. Returns how many were added.
+func add(item_id: String, amount := 1) -> int:
+	var stack_max := int(_items[item_id].stack_max)
+	var left := amount
+	for slot in slots:
+		if left > 0 and slot.get("item_id") == item_id and slot.count < stack_max:
+			var moved := mini(left, stack_max - slot.count)
+			slot.count += moved
+			left -= moved
+	for i in slots.size():
+		if left > 0 and slots[i].is_empty():
+			var moved := mini(left, stack_max)
+			slots[i] = {"item_id": item_id, "count": moved}
+			left -= moved
+	return amount - left
+
+
+## Takes up to [param amount] items out of slot [param index].
+## Returns {"item_id", "count"} of what was taken, empty if the slot was empty.
+func take(index: int, amount: int) -> Dictionary:
+	var slot := slots[index]
+	if slot.is_empty():
+		return {}
+	var taken := mini(amount, slot.count)
+	var result := {"item_id": slot.item_id, "count": taken}
+	slot.count -= taken
+	if slot.count <= 0:
+		slots[index] = {}
+	return result

@@ -41,14 +41,14 @@ func test_depleted_node_gives_nothing() -> void:
 
 func test_tree_needs_the_axe_in_the_inventory() -> void:
 	var harvest := NodeHarvest.new(nodes.tree)
-	var inventory := Inventory.new()
+	var inventory := Inventory.new(GameData.params("gathering"), GameData.table("items"))
 	assert_false(harvest.can_work(inventory))
 	inventory.add("stone_axe")
 	assert_true(harvest.can_work(inventory))
 
 
 func test_hands_and_pickup_need_no_tool() -> void:
-	var inventory := Inventory.new()
+	var inventory := Inventory.new(GameData.params("gathering"), GameData.table("items"))
 	assert_true(NodeHarvest.new(nodes.bush).can_work(inventory))
 	assert_true(NodeHarvest.new(nodes.ground_stone).can_work(inventory))
 
