@@ -1,0 +1,19 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/camp/campfire.gd" id="1_fire"]
+[ext_resource type="Script" path="res://src/camp/camp.gd" id="2_camp"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_base"]
+radius = 12.0
+
+[node name="Campfire" type="Node2D"]
+script = ExtResource("1_fire")
+item_id = "campfire"
+
+[node name="Camp" type="Node2D" parent="."]
+script = ExtResource("2_camp")
+
+[node name="Body" type="StaticBody2D" parent="."]
+
+[node name="Shape" type="CollisionShape2D" parent="Body"]
+shape = SubResource("CircleShape2D_base")
