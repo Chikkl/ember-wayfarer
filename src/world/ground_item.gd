@@ -14,6 +14,8 @@ const PULL_SPEED_TILES := Vector2(3.0, 12.0)
 const PICKUP_DISTANCE_PX := 6.0
 ## Blinks per second of loot the player cannot carry.
 const BLINK_RATE := 3.0
+## The pile fades out over the last seconds of its lifetime.
+const FADE_TIME := 3.0
 const SHADOW_COLOR := Color(0, 0, 0, 0.2)
 
 ## Row id in data/items.csv.
@@ -29,6 +31,9 @@ var _from := Vector2.ZERO
 var _hop_time := 0.0
 var _height := 0.0
 var _blink := 0.0
+## Seconds since the pile fell; it disappears at ground_item_lifetime.
+var _age := 0.0
+var _lifetime: float
 var _pickup_radius_px: float
 var _player: Player
 
@@ -36,7 +41,9 @@ var _player: Player
 func _ready() -> void:
 	add_to_group(GROUP)
 	_from = position
-	_pickup_radius_px = float(GameData.params("gathering").pickup_radius) * Units.TILE_PX
+	var params := GameData.params("gathering")
+	_lifetime = float(params.ground_item_lifetime)
+	_pickup_radius_px = float(params.pickup_radius) * Units.TILE_PX
 	_player = get_tree().get_first_node_in_group(Player.GROUP)
 
 
@@ -45,15 +52,24 @@ func is_landed() -> bool:
 
 
 func _process(delta: float) -> void:
+	_age += delta
+	if _age >= _lifetime:
+		set_process(false)
+		queue_free()
+		return
+	_update_alpha()
 	if not is_landed():
 		_hop_time = minf(_hop_time + delta, HOP_TIME)
 		var t := _hop_time / HOP_TIME
 		position = _from.lerp(land_at, t)
 		_height = sin(t * PI) * HOP_HEIGHT_PX
 		queue_redraw()
-		return
-	if _player == null:
-		return
+	elif _player != null:
+		_follow_player(delta)
+
+
+## Pulls the pile to the player within pickup_radius and picks up what the player can carry.
+func _follow_player(delta: float) -> void:
 	var distance := global_position.distance_to(_player.global_position)
 	if distance > _pickup_radius_px:
 		wait_for_player_to_leave = false
@@ -82,7 +98,12 @@ func _process(delta: float) -> void:
 
 func _set_blink(time: float) -> void:
 	_blink = time
-	modulate.a = 1.0 if time == 0.0 else 0.55 + 0.45 * cos(time * TAU * BLINK_RATE)
+	_update_alpha()
+
+
+func _update_alpha() -> void:
+	var alpha := 1.0 if _blink == 0.0 else 0.55 + 0.45 * cos(_blink * TAU * BLINK_RATE)
+	modulate.a = alpha * clampf((_lifetime - _age) / FADE_TIME, 0.0, 1.0)
 
 
 func _draw() -> void:

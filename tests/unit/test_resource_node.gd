@@ -1,7 +1,8 @@
 extends GutTest
-## Resource nodes in the world and their loot, docs/systems/gathering.md.
+## Resource nodes in the world, their loot and comeback, docs/systems/gathering.md.
 
 const NODE_SCENE := preload("res://src/world/resource_node.tscn")
+const PLAYER_SCENE := preload("res://src/player/player.tscn")
 
 var world: Node2D
 
@@ -28,6 +29,15 @@ func _loot_ids() -> Array[String]:
 	return ids
 
 
+func _hit_all(node: ResourceNode) -> void:
+	while node.is_workable() and not node.is_queued_for_deletion():
+		node.hit()
+
+
+func _wait(node: ResourceNode, seconds: float) -> void:
+	simulate(node, 1, seconds, true)
+
+
 func test_felled_tree_becomes_a_stump_and_drops_its_loot() -> void:
 	var node := _place("tree")
 	for i in 6:
@@ -45,19 +55,65 @@ func test_uprooted_stump_disappears() -> void:
 	assert_eq(_loot_ids(), ["stick", "stick"])
 
 
-func test_bare_bush_stays() -> void:
+func test_stump_grows_back_into_a_tree() -> void:
+	var node := _place("tree")
+	_hit_all(node)
+	_wait(node, 299.0)
+	assert_eq(node.node_id, "stump")
+	_wait(node, 1.0)
+	assert_eq(node.node_id, "tree")
+	assert_eq(node.harvest.hits_left, 6)
+
+
+func test_uprooted_stump_of_a_felled_tree_never_comes_back() -> void:
+	var node := _place("tree")
+	_hit_all(node)
+	_hit_all(node)
+	assert_true(node.is_queued_for_deletion())
+
+
+func test_bare_bush_stays_until_it_regrows() -> void:
 	var node := _place("bush")
-	for i in 3:
-		node.hit()
+	_hit_all(node)
 	assert_false(node.is_workable())
 	assert_false(node.is_queued_for_deletion())
+	_wait(node, 179.0)
+	assert_false(node.is_workable())
+	_wait(node, 1.0)
+	assert_eq(node.harvest.hits_left, 3)
 
 
-func test_picked_stick_disappears_from_the_ground() -> void:
-	var node := _place("ground_stick")
+func test_picked_stick_comes_back_in_its_zone() -> void:
+	var node := _place("ground_stick", Vector2(100, 0))
 	node.hit()
-	assert_true(node.is_queued_for_deletion())
 	assert_eq(_loot_ids(), ["stick"])
+	assert_false(node.visible)
+	assert_false(node.is_workable())
+	_wait(node, 119.0)
+	assert_false(node.visible)
+	_wait(node, 1.0)
+	assert_true(node.visible)
+	assert_true(node.is_workable())
+	var radius := float(GameData.params("gathering").respawn_radius) * Units.TILE_PX
+	assert_lt(node.position.distance_to(Vector2(100, 0)), radius + 0.001)
+
+
+func test_stick_comes_back_away_from_the_player_and_camp_items() -> void:
+	var player: Player = PLAYER_SCENE.instantiate()
+	world.add_child(player)
+	var fire := ComfortItem.new()
+	fire.item_id = "campfire"
+	fire.position = Vector2(64, 0)
+	world.add_child(fire)
+	var stones: Array[ResourceNode] = []
+	for i in 10:
+		var stone := _place("ground_stone", Vector2(i * 0.1, 0))
+		stone.hit()
+		_wait(stone, 120.0)
+		stones.append(stone)
+	for stone in stones:
+		assert_gte(stone.position.distance_to(player.position), Units.TILE_PX)
+		assert_gte(stone.position.distance_to(fire.position), 1.5 * Units.TILE_PX)
 
 
 func test_nearest_workable_node_in_radius() -> void:

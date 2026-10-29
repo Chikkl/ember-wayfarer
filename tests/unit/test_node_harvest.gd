@@ -53,6 +53,11 @@ func test_hands_and_pickup_need_no_tool() -> void:
 	assert_true(NodeHarvest.new(nodes.ground_stone).can_work(inventory))
 
 
+func test_respawn_time_and_never_for_a_stump() -> void:
+	assert_eq(NodeHarvest.new(nodes.tree).respawn, 300.0)
+	assert_eq(NodeHarvest.new(nodes.stump).respawn, 0.0)
+
+
 func test_uneven_share_adds_up_to_the_total() -> void:
 	var parts: Array[int] = []
 	for i in 3:

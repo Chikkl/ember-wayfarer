@@ -17,6 +17,12 @@ const BAR_TIME := 2.0
 const BAR_SIZE := Vector2(24, 4)
 ## Height of the bar above the node base for each node.
 const BAR_HEIGHT_PX := {"bush": 30.0, "tree": 82.0, "stump": 18.0}
+## A stick or a stone does not come back this close to the player or to a camp item.
+const PLAYER_CLEARANCE_TILES := 1.0
+const CAMP_ITEM_CLEARANCE_TILES := 1.5
+## Random points tried in the zone before the comeback waits RETRY_TIME seconds.
+const ZONE_TRIES := 8
+const RETRY_TIME := 1.0
 
 const SHADOW_COLOR := Color(0, 0, 0, 0.22)
 const HIGHLIGHT_COLOR := Color(1, 1, 1, 0.55)
@@ -44,12 +50,20 @@ var _shake := 0.0
 var _bar := 0.0
 var _crown_color := Color("3f7d3a")
 var _crown_radius := 20.0
+## Where a stick or a stone lay at the start: the center of its zone.
+var _home := Vector2.ZERO
+## Seconds until a depleted node comes back as [member _comeback_id]; 0 if it is not waiting.
+var _comeback_left := 0.0
+var _comeback_id := ""
+var _respawn_radius_px: float
 
 @onready var _base: CollisionShape2D = $Base
 
 
 func _ready() -> void:
 	add_to_group(GROUP)
+	_home = global_position
+	_respawn_radius_px = float(GameData.params("gathering").respawn_radius) * Units.TILE_PX
 	_rng.seed = hash(global_position)
 	_crown_color = _crown_color.darkened(_rng.randf_range(0.0, 0.2))
 	_crown_radius = _rng.randf_range(17.0, 23.0)
@@ -63,7 +77,6 @@ func is_workable() -> bool:
 
 
 ## One hit by the player: the node shakes and drops its loot for this hit.
-## A depleted tree becomes a stump, a bush stays bare, the rest disappear.
 func hit() -> void:
 	var loot := harvest.hit()
 	_bar = BAR_TIME
@@ -72,14 +85,71 @@ func hit() -> void:
 		for i in loot[item_id]:
 			_drop(item_id)
 	if harvest.is_depleted():
-		match node_id:
-			"tree":
-				_become("stump")
-				_bar = 0.0
-			"bush":
-				pass
-			_:
+		_deplete()
+
+
+## Seconds until the node comes back, 0 if it is not waiting.
+func comeback_left() -> float:
+	return _comeback_left
+
+
+## Rules: docs/systems/gathering.md, "Восстановление". A felled tree leaves a stump
+## that grows back into a tree, a bush stays bare until it regrows, a stick or a stone
+## disappears and comes back elsewhere in its zone. An uprooted stump is gone for good.
+func _deplete() -> void:
+	var respawn := harvest.respawn
+	match node_id:
+		"tree":
+			_become("stump")
+			_bar = 0.0
+			_wait_comeback(respawn, "tree")
+		"bush":
+			_wait_comeback(respawn, "bush")
+		_:
+			if respawn <= 0.0:
 				queue_free()
+				return
+			visible = false
+			_wait_comeback(respawn, node_id)
+
+
+func _wait_comeback(seconds: float, id: String) -> void:
+	_comeback_left = seconds
+	_comeback_id = id
+	set_process(true)
+
+
+func _come_back() -> void:
+	if node_id in FLAT_NODES:
+		var point := _zone_point()
+		if point == Vector2.INF:
+			_comeback_left = RETRY_TIME
+			return
+		global_position = point
+		visible = true
+	_become(_comeback_id)
+
+
+## A random free point of the zone, or Vector2.INF if none was found.
+func _zone_point() -> Vector2:
+	for i in ZONE_TRIES:
+		var angle := _rng.randf() * TAU
+		var distance := sqrt(_rng.randf()) * _respawn_radius_px
+		var point := _home + Vector2(cos(angle), sin(angle)) * distance
+		if _is_free(point):
+			return point
+	return Vector2.INF
+
+
+func _is_free(point: Vector2) -> bool:
+	var player: Node2D = get_tree().get_first_node_in_group(Player.GROUP)
+	var player_clearance := PLAYER_CLEARANCE_TILES * Units.TILE_PX
+	if player != null and player.global_position.distance_to(point) < player_clearance:
+		return false
+	for item: ComfortItem in get_tree().get_nodes_in_group(ComfortItem.GROUP):
+		if item.global_position.distance_to(point) < CAMP_ITEM_CLEARANCE_TILES * Units.TILE_PX:
+			return false
+	return true
 
 
 ## A push without the needed tool: the node only shakes.
@@ -112,10 +182,16 @@ func _start_shake() -> void:
 
 
 func _process(delta: float) -> void:
-	_shake = maxf(_shake - delta, 0.0)
-	_bar = maxf(_bar - delta, 0.0)
-	queue_redraw()
-	if _shake == 0.0 and _bar == 0.0:
+	if _shake > 0.0 or _bar > 0.0:
+		_shake = maxf(_shake - delta, 0.0)
+		_bar = maxf(_bar - delta, 0.0)
+		queue_redraw()
+	if _comeback_left > 0.0:
+		_comeback_left -= delta
+		if _comeback_left <= 0.0:
+			_comeback_left = 0.0
+			_come_back()
+	if _shake == 0.0 and _bar == 0.0 and _comeback_left == 0.0:
 		set_process(false)
 
 

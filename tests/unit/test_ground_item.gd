@@ -48,6 +48,18 @@ func test_loot_out_of_radius_stays_on_the_ground() -> void:
 	assert_eq(item.position, Vector2(200, 0))
 
 
+func test_loot_fades_and_disappears_after_its_lifetime() -> void:
+	var lifetime := float(GameData.params("gathering").ground_item_lifetime)
+	var item := _pile("stone", 1, Vector2(200, 0))
+	simulate(item, 1, lifetime - 10.0, true)
+	assert_eq(item.modulate.a, 1.0)
+	simulate(item, 1, 8.5, true)
+	assert_almost_eq(item.modulate.a, 0.5, 0.001, "Halfway through the fade")
+	assert_false(item.is_queued_for_deletion())
+	simulate(item, 1, 1.5, true)
+	assert_true(item.is_queued_for_deletion())
+
+
 func test_loot_over_the_cap_is_not_pulled() -> void:
 	player.inventory.add("log", 7)
 	var item := _pile("log", 1, Vector2(20, 0))

@@ -12,6 +12,8 @@ var hits_left: int
 var stamina_cost: float
 ## Item id of the tool the node needs, or one of [constant NO_TOOL].
 var tool_id: String
+## Seconds until a depleted node is back; 0 if it never comes back.
+var respawn: float
 
 var _drops: Dictionary
 var _per_hit: bool
@@ -23,6 +25,7 @@ func _init(row: Dictionary) -> void:
 	hits_left = hits
 	stamina_cost = float(row.stamina_cost)
 	tool_id = row.tool
+	respawn = 0.0 if row.respawn is String else float(row.respawn)
 	_drops = DataLoader.parse_amounts(row.drops)
 	_per_hit = row.drop_mode == "per_hit"
 
