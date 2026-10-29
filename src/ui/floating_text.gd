@@ -1,6 +1,6 @@
 class_name FloatingText
 extends Label
-## Short text over the world that rises and fades: "+1 Ветка", "нужен каменный топор".
+## Short text over the world that rises and fades: "+1 Ветка", "нужен инструмент".
 
 const RISE_PX := 18.0
 const LIFE_TIME := 0.9

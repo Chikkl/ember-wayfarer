@@ -18,6 +18,8 @@ const SHADOW_COLOR := Color(0, 0, 0, 0.25)
 const HANDLE_COLOR := Color("8a6238")
 const TOOL_HEAD_COLOR := Color("8c8a86")
 const HINT_COLOR := Color("ffb37a")
+## One hint for any missing tool: tools change as crafting grows, the hint stays.
+const NEED_TOOL_HINT := "нужен инструмент"
 const BUNDLE_COLOR := Color("9b7a4c")
 const HIT_FLASH_TIME := 0.12
 ## A dropped pile lands this many tiles in front of the player.
@@ -166,9 +168,9 @@ func _start_work(node: ResourceNode) -> void:
 	if not node.harvest.can_work(inventory):
 		node.push()
 		_hit_flash = HIT_FLASH_TIME
-		var tool_name: String = GameData.table("items")[node.harvest.tool_id].name
-		var hint := "нужен %s" % tool_name.to_lower()
-		FloatingText.spawn(get_parent(), node.position + Vector2(0, -44), hint, HINT_COLOR)
+		FloatingText.spawn(
+			get_parent(), node.position + Vector2(0, -44), NEED_TOOL_HINT, HINT_COLOR
+		)
 		return
 	_target = node
 	_work.start()
