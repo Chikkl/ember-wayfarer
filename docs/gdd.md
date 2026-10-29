@@ -8,7 +8,7 @@
 
 | Система | Документ | Этап | Статус |
 | --- | --- | --- | --- |
-| Движение и выносливость | [systems/movement-stamina.md](systems/movement-stamina.md) | Ядро, шаг 1 | Черновик v0.4 |
+| Движение и выносливость | [systems/movement-stamina.md](systems/movement-stamina.md) | Ядро, шаг 1 | Черновик v0.5 |
 | Комфорт | [systems/comfort.md](systems/comfort.md) | Ядро, шаг 1 | Черновик v0.3 |
 | Сбор ресурсов | [systems/gathering.md](systems/gathering.md) | Ядро, шаг 1 | Черновик v0.6 |
 | Крафт | [systems/crafting.md](systems/crafting.md) | Ядро, шаг 1 | Черновик v0.1 |
