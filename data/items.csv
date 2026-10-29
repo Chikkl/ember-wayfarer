@@ -1,0 +1,8 @@
+id,name,weight,stack_max,xp
+stick,Ветка,1,99,1
+stone,Камень,2,99,1
+leaves,Листья,1,99,1
+log,Бревно,10,20,4
+chopper,Рубило,2,10,0
+shaped_stick,Обработанная палка,1,20,0
+stone_axe,Каменный топор,3,1,0

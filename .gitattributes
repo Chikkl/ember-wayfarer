@@ -1,0 +1,9 @@
+# Normalize line endings; store text as UTF-8 with LF
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.ogg binary
+*.wav binary
+*.ttf binary
+*.otf binary

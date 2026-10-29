@@ -1,0 +1,6 @@
+{
+  "_doc": "docs/systems/tech-tree.md",
+  "xp_base": 30,
+  "xp_growth": 1.7,
+  "points_per_level": 1
+}
