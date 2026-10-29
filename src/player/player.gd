@@ -1,19 +1,27 @@
 class_name Player
 extends CharacterBody2D
-## The player: walking, stamina and rest.
-## Rules: docs/systems/movement-stamina.md. Values: data/player.json.
+## The player: walking, stamina, rest and gathering.
+## Rules: docs/systems/movement-stamina.md, docs/systems/gathering.md.
+## Values: data/player.json, data/gathering.json.
 
 enum Facing { DOWN, UP, LEFT, RIGHT }
 
+const GROUP := "player"
 ## sin(22.5°): input closer than this to vertical counts as straight up or down,
 ## anything else, diagonals included, faces left or right.
 const SIDE_FACING_MIN_X := 0.3827
+## Given by the debug key until crafting exists.
+const DEBUG_TOOL := "stone_axe"
 const BODY_COLOR := Color("4f7cac")
 const SKIN_COLOR := Color("f0c9a0")
 const SHADOW_COLOR := Color(0, 0, 0, 0.25)
+const HANDLE_COLOR := Color("8a6238")
+const TOOL_HEAD_COLOR := Color("8c8a86")
+const HINT_COLOR := Color("ffb37a")
 const HIT_FLASH_TIME := 0.12
 
 var stamina: Stamina
+var inventory := Inventory.new()
 var is_resting := false
 var facing := Facing.DOWN
 
@@ -21,18 +29,22 @@ var _move_speed_px: float
 var _accel_time: float
 var _rest_params: Dictionary
 var _work: WorkRhythm
-var _debug_work_cost: float
+var _interact_radius_px: float
+var _target: ResourceNode
+var _highlighted: ResourceNode
 var _hit_flash := 0.0
 
 
 func _ready() -> void:
+	add_to_group(GROUP)
 	var params := GameData.params("player")
 	stamina = Stamina.new(params)
 	_move_speed_px = float(params.move_speed) * Units.TILE_PX
 	_accel_time = maxf(float(params.move_accel_time), 0.001)
 	_rest_params = GameData.params("comfort")
-	_work = WorkRhythm.new(float(GameData.params("gathering").hit_interval))
-	_debug_work_cost = float(GameData.table("resource_nodes").tree.stamina_cost)
+	var gathering := GameData.params("gathering")
+	_work = WorkRhythm.new(float(gathering.hit_interval))
+	_interact_radius_px = float(gathering.interact_radius) * Units.TILE_PX
 	motion_mode = MOTION_MODE_FLOATING
 	$StaminaRing.stamina = stamina
 
@@ -41,7 +53,8 @@ func _physics_process(delta: float) -> void:
 	var input := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	is_resting = next_resting(is_resting, input, Input.is_action_just_pressed("rest"))
 	_move(input, delta)
-	_debug_work(delta)
+	_gather(delta)
+	_debug_give_tool()
 	var rest_rate := 0.0
 	var regen_mult := 1.0
 	if is_resting:
@@ -56,6 +69,27 @@ func _physics_process(delta: float) -> void:
 ## Comfort at the player's feet: the camp they stand in, or zero outside.
 func current_comfort() -> int:
 	return Camp.comfort_at(get_tree(), global_position)
+
+
+## An item from the ground goes into the inventory.
+func pick_up(item_id: String) -> void:
+	inventory.add(item_id)
+	var item_name: String = GameData.table("items")[item_id].name
+	FloatingText.spawn(get_parent(), position + Vector2(0, -52), "+1 %s" % item_name)
+
+
+## The workable node nearest to [param origin] within [param radius], or null.
+static func nearest_node(nodes: Array[Node], origin: Vector2, radius: float) -> ResourceNode:
+	var best: ResourceNode = null
+	var best_distance := radius
+	for node: ResourceNode in nodes:
+		if not node.is_workable():
+			continue
+		var distance := origin.distance_to(node.global_position)
+		if distance <= best_distance:
+			best = node
+			best_distance = distance
+	return best
 
 
 ## Rest state after this frame: any movement stands the player up,
@@ -88,15 +122,61 @@ func _move(input: Vector2, delta: float) -> void:
 	facing = facing_for(input, facing)
 
 
-## Temporary until the gathering prototype: holding the debug key works
-## "into the air" with the tree's stamina cost and the gathering hit rhythm.
-func _debug_work(delta: float) -> void:
-	if Input.is_action_just_pressed("debug_work") and not is_resting:
-		_work.start()
-	if is_resting or not Input.is_action_pressed("debug_work"):
+## Hold-to-work on the nearest resource node. Rules: docs/systems/gathering.md, "Действия".
+func _gather(delta: float) -> void:
+	var nearest := nearest_node(
+		get_tree().get_nodes_in_group(ResourceNode.GROUP), global_position, _interact_radius_px
+	)
+	if Input.is_action_just_pressed("interact") and not is_resting and nearest != null:
+		_start_work(nearest)
+	var held := Input.is_action_pressed("interact") and not is_resting
+	if not held or not _can_keep_working():
 		_work.stop()
-	if _work.update(delta, stamina, _debug_work_cost):
+		_target = null
+	_set_highlight(_target if _target != null else nearest)
+	var cost := _target.harvest.stamina_cost if _target != null else 0.0
+	if _work.update(delta, stamina, cost) and _target != null:
 		_hit_flash = HIT_FLASH_TIME
+		facing = facing_for(_target.global_position - global_position, facing)
+		_target.hit()
+
+
+## Work needs the node's tool in the inventory; without it the player only pushes the node.
+func _start_work(node: ResourceNode) -> void:
+	if not node.harvest.can_work(inventory):
+		node.push()
+		_hit_flash = HIT_FLASH_TIME
+		var tool_name: String = GameData.table("items")[node.harvest.tool_id].name
+		var hint := "нужен %s" % tool_name.to_lower()
+		FloatingText.spawn(get_parent(), node.position + Vector2(0, -44), hint, HINT_COLOR)
+		return
+	_target = node
+	_work.start()
+
+
+func _can_keep_working() -> bool:
+	return (
+		_work.is_working
+		and is_instance_valid(_target)
+		and _target.is_workable()
+		and global_position.distance_to(_target.global_position) <= _interact_radius_px
+	)
+
+
+func _set_highlight(node: ResourceNode) -> void:
+	if node == _highlighted:
+		return
+	if is_instance_valid(_highlighted):
+		_highlighted.highlighted = false
+	_highlighted = node
+	if node != null:
+		node.highlighted = true
+
+
+## Temporary until crafting: the debug key gives the stone axe.
+func _debug_give_tool() -> void:
+	if Input.is_action_just_pressed("debug_give_tool") and inventory.count(DEBUG_TOOL) == 0:
+		pick_up(DEBUG_TOOL)
 
 
 func _draw() -> void:
@@ -116,6 +196,19 @@ func _draw() -> void:
 		draw_rect(Rect2(-8, -26, 16, 22), body_color)
 	draw_circle(head, 7.0, SKIN_COLOR)
 	_draw_eyes(head)
+	if _target != null and _target.harvest.tool_id not in NodeHarvest.NO_TOOL:
+		_draw_tool()
+
+
+## The tool comes out of the inventory while the player works with it.
+## During a hit it swings down.
+func _draw_tool() -> void:
+	var side := -1.0 if facing == Facing.LEFT else 1.0
+	var angle := (0.9 if _hit_flash > 0.0 else 0.0) * side
+	draw_set_transform(Vector2(9 * side, -14), angle)
+	draw_line(Vector2.ZERO, Vector2(4 * side, -16), HANDLE_COLOR, 2.5)
+	draw_rect(Rect2(Vector2(4 * side - 3, -19), Vector2(6, 5)), TOOL_HEAD_COLOR)
+	draw_set_transform(Vector2.ZERO)
 
 
 func _draw_eyes(head: Vector2) -> void:

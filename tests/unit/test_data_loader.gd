@@ -11,6 +11,17 @@ func test_parse_cell_types() -> void:
 	assert_eq(DataLoader.parse_cell(""), "")
 
 
+func test_parse_amounts() -> void:
+	assert_eq(DataLoader.parse_amounts("log:3;stick:2"), {"log": 3, "stick": 2})
+	assert_eq(DataLoader.parse_amounts("stone:1"), {"stone": 1})
+	assert_eq(DataLoader.parse_amounts(""), {})
+
+
+func test_parse_amounts_skips_broken_parts() -> void:
+	assert_eq(DataLoader.parse_amounts("log:3;stick"), {"log": 3})
+	assert_push_error("Wrong amount 'stick'")
+
+
 func test_comfort_items_csv() -> void:
 	var rows := DataLoader.load_csv("res://data/comfort_items.csv")
 	assert_eq(rows.size(), 4)
@@ -39,7 +50,8 @@ func test_player_json_has_every_spec_parameter() -> void:
 func test_data_used_by_the_prototype_exists() -> void:
 	for key in ["camp_radius", "rest_fatigue_base", "rest_per_comfort", "rest_regen_per_comfort"]:
 		assert_has(DataLoader.load_json("res://data/comfort.json"), key)
-	assert_has(DataLoader.load_json("res://data/gathering.json"), "hit_interval")
+	for key in ["hit_interval", "interact_radius", "pickup_radius"]:
+		assert_has(DataLoader.load_json("res://data/gathering.json"), key)
 	var nodes := DataLoader.index_by(DataLoader.load_csv("res://data/resource_nodes.csv"), "id")
 	assert_has(nodes, "tree")
 	assert_has(nodes.tree, "stamina_cost")
