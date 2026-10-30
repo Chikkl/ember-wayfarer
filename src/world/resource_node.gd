@@ -76,9 +76,10 @@ func is_workable() -> bool:
 	return not harvest.is_depleted()
 
 
-## One hit by the player: the node shakes and drops its loot for this hit.
-func hit() -> void:
-	var loot := harvest.hit()
+## One hit by the player with a tool of [param power]: the node shakes and drops
+## its loot for this hit.
+func hit(power := 1.0) -> void:
+	var loot := harvest.hit(power)
 	_bar = BAR_TIME
 	_start_shake()
 	for item_id: String in loot:

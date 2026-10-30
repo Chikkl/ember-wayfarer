@@ -49,3 +49,21 @@ func test_tree_without_axe_only_shakes() -> void:
 	await _hold_interact(0.7)
 	assert_eq(tree.harvest.hits_left, 6)
 	assert_eq(player.stamina.value, stamina)
+
+
+func test_chopper_fells_a_tree_with_light_quick_strikes() -> void:
+	player.inventory.add("chopper")
+	var tree := _place("tree")
+	await _hold_interact(5.7)
+	assert_eq(tree.node_id, "stump", "15 strikes every 0.4 s take 5.6 s")
+	assert_eq(tree.harvest.hits_left, 2.0, "The chopper does not take the stump")
+	assert_almost_eq(player.stamina.fatigue, 2.25, 0.001, "15 strikes of 5 stamina")
+
+
+func test_axe_is_taken_over_the_chopper() -> void:
+	player.inventory.add("chopper")
+	player.inventory.add("stone_axe")
+	var tree := _place("tree")
+	await _hold_interact(3.1)
+	assert_eq(tree.node_id, "stump", "6 strikes every 0.6 s take 3.0 s")
+	assert_almost_eq(player.stamina.fatigue, 1.44, 0.001, "6 strikes of 8 stamina")
