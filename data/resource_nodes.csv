@@ -1,6 +1,6 @@
-id,name,tool,hits,stamina_cost,drops,drop_mode,respawn
-ground_stick,Ветка на земле,pickup,1,0,stick:1,on_last_hit,120
-ground_stone,Камень на земле,pickup,1,0,stone:1,on_last_hit,120
-bush,Куст,hands,3,4,leaves:6,per_hit,180
-tree,Дерево,stone_axe,6,8,log:3;stick:2,on_last_hit,300
-stump,Пень,stone_axe,2,8,stick:2,on_last_hit,
+id,name,tool,hits,stamina_cost,drops,drop_mode,respawn,alt_tools
+ground_stick,Ветка на земле,pickup,1,0,stick:1,on_last_hit,120,
+ground_stone,Камень на земле,pickup,1,0,stone:1,on_last_hit,120,
+bush,Куст,hands,3,4,leaves:6,per_hit,180,
+tree,Дерево,stone_axe,6,8,log:3;stick:2,on_last_hit,300,chopper
+stump,Пень,stone_axe,2,8,stick:2,on_last_hit,,
