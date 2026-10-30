@@ -28,7 +28,7 @@ func _ready() -> void:
 		_start_capture(take)
 
 
-## Capture mode for reels and visual reviews: docs/decisions.md, 2026-10-30.
+## Capture mode for reels and visual reviews: docs/captures.md, "Режим съёмки".
 func _start_capture(take: String) -> void:
 	if take not in CaptureTakes.ALL:
 		push_error("Unknown capture take '%s', known: %s" % [take, CaptureTakes.ALL.keys()])
