@@ -34,6 +34,7 @@ const DROP_DISTANCE_TILES := 0.8
 var stamina: Stamina
 var inventory: Inventory
 var progression: Progression
+var recipe_tree: RecipeTree
 var is_resting := false
 var facing := Facing.DOWN
 
@@ -66,6 +67,7 @@ func _ready() -> void:
 	inventory = Inventory.new(gathering, _items)
 	progression = Progression.new(GameData.params("progression"))
 	progression.leveled_up.connect(_on_leveled_up)
+	recipe_tree = RecipeTree.new(GameData.table("recipe_tree"))
 	_tools = GameData.table("tools")
 	_hands_interval = float(gathering.hit_interval)
 	_work = WorkRhythm.new(_hands_interval)

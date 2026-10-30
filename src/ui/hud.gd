@@ -10,12 +10,28 @@ extends CanvasLayer
 @onready var _hint_label: Label = $Hint
 @onready var _inventory_bar: InventoryBar = $Inventory
 @onready var _xp_bar: XpBar = $Experience
+@onready var _tree_screen: TreeScreen = $Tree
 
 
 func _ready() -> void:
 	_inventory_bar.setup(player.inventory)
 	_inventory_bar.drop_requested.connect(player.drop_from_slot)
 	_xp_bar.setup(player.progression)
+	_tree_screen.setup(player.recipe_tree, player.progression, GameData.table("recipes"))
+
+
+## The tree screen reads the same actions as the player, in the physics frame,
+## so capture mode can open it too.
+func _physics_process(_delta: float) -> void:
+	if Input.is_action_just_pressed("tree"):
+		_tree_screen.toggle()
+	elif Input.is_action_just_pressed("ui_cancel"):
+		_tree_screen.hide()
+
+
+## The recipe tree screen, for capture mode clicks.
+func tree_screen() -> TreeScreen:
+	return _tree_screen
 
 
 ## Capture mode keeps only the inventory and experience bars: the text lines

@@ -36,6 +36,14 @@ func threshold(from_level: int) -> int:
 	return roundi(_base * pow(_growth, from_level - 1))
 
 
+## Takes [param cost] points. False if there are not enough.
+func spend_points(cost: int) -> bool:
+	if cost > points:
+		return false
+	points -= cost
+	return true
+
+
 ## Adds experience. Extra experience carries over to the next level,
 ## every new level gives its points, several levels at once go one by one.
 func add_xp(amount: int) -> void:

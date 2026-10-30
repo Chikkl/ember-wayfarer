@@ -6,6 +6,8 @@ extends Control
 const WIDTH_PX := 240.0
 const BAR_HEIGHT_PX := 8.0
 const LABEL_HEIGHT_PX := 16.0
+## The line with unspent points under the bar.
+const POINTS_HEIGHT_PX := 18.0
 const TOP_MARGIN_PX := 12
 const FONT_SIZE := 12
 ## Share of the bar the shown fill moves per second towards the real one.
@@ -23,7 +25,7 @@ var _shown_level := 1
 func setup(player_progression: Progression) -> void:
 	progression = player_progression
 	_shown_level = progression.level
-	size = Vector2(WIDTH_PX, LABEL_HEIGHT_PX + BAR_HEIGHT_PX)
+	size = Vector2(WIDTH_PX, LABEL_HEIGHT_PX + BAR_HEIGHT_PX + POINTS_HEIGHT_PX)
 	set_anchors_and_offsets_preset(PRESET_CENTER_TOP, PRESET_MODE_KEEP_SIZE, TOP_MARGIN_PX)
 	mouse_filter = MOUSE_FILTER_IGNORE
 
@@ -48,13 +50,13 @@ func _draw() -> void:
 	var numbers := "%d / %d" % [progression.xp, threshold]
 	var numbers_width := font.get_string_size(numbers, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x
 	_draw_text(font, Vector2(size.x - numbers_width, LABEL_HEIGHT_PX - 4), numbers)
-	if progression.points > 0:
-		var points := "Очки развития: %d" % progression.points
-		var points_x := (size.x - font.get_string_size(points, 0, -1, FONT_SIZE).x) / 2.0
-		_draw_text(font, Vector2(points_x, LABEL_HEIGHT_PX - 4), points, POINTS_COLOR)
 	var bar := Rect2(0, LABEL_HEIGHT_PX, size.x, BAR_HEIGHT_PX)
 	draw_rect(bar, BACK_COLOR)
 	draw_rect(Rect2(bar.position, Vector2(bar.size.x * _shown, bar.size.y)), XP_COLOR)
+	if progression.points > 0:
+		var points := "Очки развития: %d · T — дерево" % progression.points
+		var points_x := (size.x - font.get_string_size(points, 0, -1, FONT_SIZE).x) / 2.0
+		_draw_text(font, Vector2(points_x, size.y - 2), points, POINTS_COLOR)
 
 
 func _draw_text(font: Font, at: Vector2, text: String, color := Color.WHITE) -> void:
