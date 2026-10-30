@@ -12,10 +12,14 @@ extends Node
 ##   node; with "until": "exhausted" keep chopping trees and stumps until exhaustion;
 ## - collect: walk over the loot around the player;
 ## - rest: press R once;
+## - press: press "action" once, like T for the tree screen;
+## - click_tree_node: click "node" on the tree screen;
 ## - zoom: zoom the camera to "zoom" while the next steps play.
 
 const ARG_PREFIX := "--capture="
-const STEP_KINDS: Array[String] = ["wait", "walk_to", "work", "collect", "rest", "zoom"]
+const STEP_KINDS: Array[String] = [
+	"wait", "walk_to", "work", "collect", "rest", "press", "click_tree_node", "zoom"
+]
 const FIRE_TARGET := "fire"
 const UNTIL_EXHAUSTED := "exhausted"
 const HELD_ACTIONS: Array[String] = [
@@ -50,6 +54,7 @@ const ZOOM_TIME := 0.6
 
 var _player: Player
 var _campfire: Node2D
+var _hud: Hud
 var _camera: Camera2D
 var _steps: Array = []
 var _step: Dictionary = {}
@@ -81,7 +86,8 @@ static func take_from_args(args: PackedStringArray) -> String:
 	return ""
 
 
-## What is wrong with [param take]: unknown steps, targets and items. Empty if nothing.
+## What is wrong with [param take]: unknown steps, targets, actions, tree nodes
+## and items. Empty if nothing.
 static func take_problems(take: Dictionary) -> Array[String]:
 	var problems: Array[String] = []
 	var items := GameData.table("items")
@@ -89,6 +95,7 @@ static func take_problems(take: Dictionary) -> Array[String]:
 		if item_id not in items:
 			problems.append("unknown item '%s'" % item_id)
 	var nodes := GameData.table("resource_nodes")
+	var tree_nodes := GameData.table("recipe_tree")
 	for step: Dictionary in take.get("steps", []):
 		var kind: String = step.get("do", "")
 		var target: String = step.get("target", FIRE_TARGET)
@@ -98,6 +105,10 @@ static func take_problems(take: Dictionary) -> Array[String]:
 			problems.append("unknown target in %s" % step)
 		elif kind == "work" and step.get("until", UNTIL_EXHAUSTED) != UNTIL_EXHAUSTED:
 			problems.append("unknown 'until' in %s" % step)
+		elif kind == "press" and not InputMap.has_action(step.get("action", "")):
+			problems.append("unknown action in %s" % step)
+		elif kind == "click_tree_node" and step.get("node", "") not in tree_nodes:
+			problems.append("unknown tree node in %s" % step)
 	return problems
 
 
@@ -112,10 +123,12 @@ static func move_strengths(direction: Vector2) -> Dictionary:
 	}
 
 
-## Gives the take's items and moves the player to its start before the first frame.
-func setup(take: Dictionary, player: Player, campfire: Node2D) -> void:
+## Gives the take's items and experience ("xp") and moves the player to its start
+## before the first frame.
+func setup(take: Dictionary, player: Player, campfire: Node2D, hud: Hud) -> void:
 	_player = player
 	_campfire = campfire
+	_hud = hud
 	_camera = player.get_node("Camera")
 	_steps = take.steps.duplicate()
 	_interact_radius_px = float(GameData.params("gathering").interact_radius) * Units.TILE_PX
@@ -124,6 +137,7 @@ func setup(take: Dictionary, player: Player, campfire: Node2D) -> void:
 		player.inventory.add(item_id, items[item_id])
 	if take.has("start"):
 		player.global_position = campfire.global_position + take.start * Units.TILE_PX
+	player.progression.add_xp(int(take.get("xp", 0)))
 	# The player reads the actions later in the same physics frame.
 	process_physics_priority = -1
 
@@ -166,6 +180,10 @@ func _begin_next_step() -> void:
 			_skipped_loot.clear()
 		"rest":
 			Input.action_press("rest")
+		"press":
+			Input.action_press(_step.action)
+		"click_tree_node":
+			_click(_hud.tree_screen().node_center(_step.node), true)
 		"zoom":
 			var zoom := Vector2.ONE * float(_step.zoom)
 			create_tween().tween_property(_camera, "zoom", zoom, ZOOM_TIME)
@@ -182,7 +200,7 @@ func _run_step(delta: float) -> bool:
 			return _run_work(delta)
 		"collect":
 			return _run_collect(delta)
-		"rest", "zoom":
+		"rest", "press", "click_tree_node", "zoom":
 			return true
 	push_warning("capture: unknown step %s" % _step)
 	return true
@@ -191,6 +209,11 @@ func _run_step(delta: float) -> bool:
 func _end_step() -> void:
 	for action in HELD_ACTIONS:
 		Input.action_release(action)
+	match _step.get("do", ""):
+		"press":
+			Input.action_release(_step.action)
+		"click_tree_node":
+			_click(_hud.tree_screen().node_center(_step.node), false)
 	# Only a walk hands its node over to the next step.
 	if _step.get("do", "") != "walk_to":
 		_node = null
@@ -307,6 +330,16 @@ func _walk_toward(point: Vector2, stop_px: float, delta: float) -> bool:
 			_stuck_time = 0.0
 	_hold_move(offset)
 	return false
+
+
+## A left mouse button event at [param at] on the screen, the way a player clicks.
+func _click(at: Vector2, pressed: bool) -> void:
+	var event := InputEventMouseButton.new()
+	event.button_index = MOUSE_BUTTON_LEFT
+	event.pressed = pressed
+	event.position = at
+	event.global_position = at
+	Input.parse_input_event(event)
 
 
 func _hold_move(direction: Vector2) -> void:

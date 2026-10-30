@@ -41,7 +41,7 @@ func _start_capture(take: String) -> void:
 		return
 	_hud.hide_text()
 	var director := CaptureDirector.new()
-	director.setup(CaptureTakes.ALL[take], _player, _campfire)
+	director.setup(CaptureTakes.ALL[take], _player, _campfire, _hud)
 	add_child(director)
 
 

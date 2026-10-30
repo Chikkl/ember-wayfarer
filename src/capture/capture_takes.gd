@@ -50,6 +50,21 @@ const ALL := {
 			{"do": "wait", "time": 1.5},
 		],
 	},
+	# The recipe tree on the first level: open the screen, take the first node.
+	"tree-first-node":
+	{
+		"xp": 30,
+		"steps":
+		[
+			{"do": "wait", "time": 1.0},
+			{"do": "press", "action": "tree"},
+			{"do": "wait", "time": 1.5},
+			{"do": "click_tree_node", "node": "stonework"},
+			{"do": "wait", "time": 2.0},
+			{"do": "press", "action": "tree"},
+			{"do": "wait", "time": 1.0},
+		],
+	},
 	# Reel close-up of the stamina ring: work until exhaustion near the camp,
 	# then sit by the fire while the ring fills.
 	"reel-ring":
