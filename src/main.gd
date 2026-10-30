@@ -14,6 +14,8 @@ const WORLD_SEED := 7
 
 @onready var _world: Node2D = $World
 @onready var _campfire: Node2D = $World/Campfire
+@onready var _player: Player = $World/Player
+@onready var _hud: Hud = $Hud
 
 
 func _ready() -> void:
@@ -21,6 +23,26 @@ func _ready() -> void:
 	rng.seed = WORLD_SEED
 	for node_id: String in NODE_COUNTS:
 		_scatter(node_id, NODE_COUNTS[node_id], rng)
+	var take := CaptureDirector.take_from_args(OS.get_cmdline_user_args())
+	if not take.is_empty():
+		_start_capture(take)
+
+
+## Capture mode for reels and visual reviews: docs/decisions.md, 2026-10-30.
+func _start_capture(take: String) -> void:
+	if take not in CaptureTakes.ALL:
+		push_error("Unknown capture take '%s', known: %s" % [take, CaptureTakes.ALL.keys()])
+		get_tree().quit(1)
+		return
+	var problems := CaptureDirector.take_problems(CaptureTakes.ALL[take])
+	if not problems.is_empty():
+		push_error("Capture take '%s': %s" % [take, "; ".join(problems)])
+		get_tree().quit(1)
+		return
+	_hud.hide_text()
+	var director := CaptureDirector.new()
+	director.setup(CaptureTakes.ALL[take], _player, _campfire)
+	add_child(director)
 
 
 func _scatter(node_id: String, count: int, rng: RandomNumberGenerator) -> void:

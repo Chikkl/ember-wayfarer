@@ -7,13 +7,18 @@ const LOG_COLOR := Color("6b4a2e")
 const FLAME_COLORS: Array[Color] = [Color("e8562a"), Color("f59a2c"), Color("ffd25e")]
 const GLOW_COLOR := Color(1.0, 0.6, 0.2, 0.12)
 
+## Game time for the flames: the wall clock would make them flicker at another
+## speed in a Movie Maker recording.
+var _time := 0.0
 
-func _process(_delta: float) -> void:
+
+func _process(delta: float) -> void:
+	_time += delta
 	queue_redraw()
 
 
 func _draw() -> void:
-	var t := Time.get_ticks_msec() / 1000.0
+	var t := _time
 	draw_circle(Vector2(0, -6), 34.0 + sin(t * 3.0) * 2.0, GLOW_COLOR)
 	for i in 7:
 		var angle := TAU * i / 7.0
