@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://src/ui/inventory_bar.gd" id="6_inventory"]
 [ext_resource type="Script" path="res://src/ui/xp_bar.gd" id="7_xp"]
 [ext_resource type="Script" path="res://src/ui/tree_screen.gd" id="8_tree"]
+[ext_resource type="Script" path="res://src/ui/craft_menu.gd" id="9_craft"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
@@ -50,10 +51,13 @@ script = ExtResource("7_xp")
 [node name="Tree" type="Control" parent="Hud"]
 script = ExtResource("8_tree")
 
+[node name="Craft" type="Control" parent="Hud"]
+script = ExtResource("9_craft")
+
 [node name="Hint" type="Label" parent="Hud"]
 offset_left = 16.0
 offset_top = 66.0
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 4
 theme_override_font_sizes/font_size = 14
-text = "WASD — ходить · R — сесть или встать · E (удерживать) — собирать · ЛКМ / ПКМ по ячейке — выбросить один / стопку · T — дерево рецептов · F1 — отладка: каменный топор"
+text = "WASD — ходить · R — сесть или встать · E (удерживать) — собирать · ЛКМ / ПКМ по ячейке — выбросить один / стопку · C — крафт · T — дерево рецептов · F1 — отладка: каменный топор"

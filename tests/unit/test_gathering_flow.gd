@@ -90,3 +90,23 @@ func test_stone_over_the_cap_stays_on_the_ground() -> void:
 
 func _piles() -> Array[Node]:
 	return world.get_children().filter(func(node: Node) -> bool: return node is GroundItem)
+
+
+func test_crafting_while_standing_makes_the_item() -> void:
+	player.inventory.add("stone", 2)
+	assert_true(player.start_craft("chopper"))
+	await wait_seconds(2.2)
+	assert_eq(player.inventory.count("chopper"), 1)
+	assert_eq(player.progression.xp, 4, "First chopper")
+
+
+func test_a_step_cancels_crafting_and_keeps_the_materials() -> void:
+	player.inventory.add("stone", 2)
+	player.start_craft("chopper")
+	await wait_physics_frames(30)
+	Input.action_press("move_right")
+	await wait_physics_frames(5)
+	Input.action_release("move_right")
+	await wait_seconds(2.0)
+	assert_eq(player.inventory.count("chopper"), 0)
+	assert_eq(player.inventory.count("stone"), 2)

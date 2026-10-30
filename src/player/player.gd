@@ -28,6 +28,11 @@ const XP_COLOR := Color("6fb7e8")
 const LEVEL_COLOR := Color("ffd25e")
 ## A ring grows around the player on a new level.
 const LEVEL_FLASH_TIME := 0.6
+## The crafting ring over the head fills while an item is being made.
+const CRAFT_RING_CENTER := Vector2(0, -52)
+const CRAFT_RING_RADIUS := 7.0
+const CRAFT_RING_BACK := Color(0.1, 0.1, 0.1, 0.55)
+const CRAFT_RING_COLOR := Color("ffd25e")
 ## A dropped pile lands this many tiles in front of the player.
 const DROP_DISTANCE_TILES := 0.8
 
@@ -35,6 +40,7 @@ var stamina: Stamina
 var inventory: Inventory
 var progression: Progression
 var recipe_tree: RecipeTree
+var crafting: Crafting
 var is_resting := false
 var facing := Facing.DOWN
 
@@ -68,6 +74,7 @@ func _ready() -> void:
 	progression = Progression.new(GameData.params("progression"))
 	progression.leveled_up.connect(_on_leveled_up)
 	recipe_tree = RecipeTree.new(GameData.table("recipe_tree"))
+	crafting = Crafting.new(GameData.table("recipes"), inventory, recipe_tree)
 	_tools = GameData.table("tools")
 	_hands_interval = float(gathering.hit_interval)
 	_work = WorkRhythm.new(_hands_interval)
@@ -79,6 +86,9 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	var input := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	is_resting = next_resting(is_resting, input, Input.is_action_just_pressed("rest"))
+	if crafting.is_busy() and (input != Vector2.ZERO or Input.is_action_just_pressed("interact")):
+		crafting.cancel()
+	_finish_craft(crafting.update(delta))
 	_move(input, delta)
 	_gather(delta)
 	_debug_give_tool()
@@ -92,6 +102,16 @@ func _physics_process(delta: float) -> void:
 	_hit_flash = maxf(_hit_flash - delta, 0.0)
 	_level_flash = maxf(_level_flash - delta, 0.0)
 	queue_redraw()
+
+
+## Starts making [param recipe_id]: the player stands still until it is done,
+## a step or the work button cancels it. Rules: docs/systems/crafting.md, "Изготовление".
+func start_craft(recipe_id: String) -> bool:
+	if not crafting.start(recipe_id):
+		return false
+	_work.stop()
+	_target = null
+	return true
 
 
 ## Comfort at the player's feet: the camp they stand in, or zero outside.
@@ -205,11 +225,20 @@ func _start_work(node: ResourceNode) -> void:
 
 ## Experience for a result, shown as "+N опыта" over [param at].
 ## Rules: docs/systems/tech-tree.md, "Опыт и уровень".
-func _gain_xp(amount: int, at: Vector2) -> void:
+func _gain_xp(amount: int, at: Vector2, note := "") -> void:
 	if amount <= 0:
 		return
-	FloatingText.spawn(get_parent(), at, "+%d опыта" % amount, XP_COLOR)
+	FloatingText.spawn(get_parent(), at, "+%d опыта%s" % [amount, note], XP_COLOR)
 	progression.add_xp(amount)
+
+
+## A made item flies into the inventory; the first one also gives experience.
+func _finish_craft(result: Dictionary) -> void:
+	if result.is_empty():
+		return
+	var item_name: String = _items[result.item_id].name
+	FloatingText.spawn(get_parent(), position + Vector2(0, -52), "+1 %s" % item_name)
+	_gain_xp(result.xp, position + Vector2(0, -68), " · впервые")
 
 
 func _on_leveled_up(level: int) -> void:
@@ -283,6 +312,19 @@ func _draw() -> void:
 	_draw_eyes(head)
 	if _target != null and _tool.id not in NodeHarvest.NO_TOOL:
 		_draw_tool()
+	if crafting.is_busy():
+		draw_arc(CRAFT_RING_CENTER, CRAFT_RING_RADIUS, 0.0, TAU, 32, CRAFT_RING_BACK, 4.0, true)
+		var end_angle := -PI / 2.0 + TAU * crafting.progress()
+		draw_arc(
+			CRAFT_RING_CENTER,
+			CRAFT_RING_RADIUS,
+			-PI / 2.0,
+			end_angle,
+			32,
+			CRAFT_RING_COLOR,
+			3.0,
+			true
+		)
 	if _level_flash > 0.0:
 		var t := _level_flash / LEVEL_FLASH_TIME
 		var color := LEVEL_COLOR
