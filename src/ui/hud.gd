@@ -9,15 +9,17 @@ extends CanvasLayer
 @onready var _debug_label: Label = $Debug
 @onready var _hint_label: Label = $Hint
 @onready var _inventory_bar: InventoryBar = $Inventory
+@onready var _xp_bar: XpBar = $Experience
 
 
 func _ready() -> void:
 	_inventory_bar.setup(player.inventory)
 	_inventory_bar.drop_requested.connect(player.drop_from_slot)
+	_xp_bar.setup(player.progression)
 
 
-## Capture mode keeps only the inventory bar: the text lines are placeholders
-## and debug values.
+## Capture mode keeps only the inventory and experience bars: the text lines
+## are placeholders and debug values.
 func hide_text() -> void:
 	_comfort_label.hide()
 	_debug_label.hide()

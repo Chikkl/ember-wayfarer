@@ -77,8 +77,8 @@ func is_workable() -> bool:
 
 
 ## One hit by the player with a tool of [param power]: the node shakes and drops
-## its loot for this hit.
-func hit(power := 1.0) -> void:
+## its loot for this hit. Returns the loot as {item_id: count}.
+func hit(power := 1.0) -> Dictionary:
 	var loot := harvest.hit(power)
 	_bar = BAR_TIME
 	_start_shake()
@@ -87,6 +87,7 @@ func hit(power := 1.0) -> void:
 			_drop(item_id)
 	if harvest.is_depleted():
 		_deplete()
+	return loot
 
 
 ## Seconds until the node comes back, 0 if it is not waiting.
@@ -165,7 +166,14 @@ func _become(id: String) -> void:
 	queue_redraw()
 
 
+## A stick or a stone goes straight into the inventory: the pickup is instant.
+## Loot the player cannot carry falls on the ground like any other loot.
 func _drop(item_id: String) -> void:
+	if node_id in FLAT_NODES:
+		var player: Player = get_tree().get_first_node_in_group(Player.GROUP)
+		if player != null and player.inventory.carry_amount(item_id) > 0:
+			player.pick_up(item_id)
+			return
 	var item := GroundItem.new()
 	item.item_id = item_id
 	item.position = position

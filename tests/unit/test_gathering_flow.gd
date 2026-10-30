@@ -41,6 +41,7 @@ func test_holding_strips_a_bush_into_the_inventory() -> void:
 	await wait_seconds(1.0)
 	assert_eq(player.inventory.count("leaves"), 6)
 	assert_almost_eq(player.stamina.fatigue, 0.36, 0.001, "3 hits of 4 stamina were spent")
+	assert_eq(player.progression.xp, 6, "1 xp per leaf, given when the leaves drop")
 
 
 func test_tree_without_axe_only_shakes() -> void:
@@ -49,6 +50,7 @@ func test_tree_without_axe_only_shakes() -> void:
 	await _hold_interact(0.7)
 	assert_eq(tree.harvest.hits_left, 6)
 	assert_eq(player.stamina.value, stamina)
+	assert_eq(player.progression.xp, 0, "Pushing gives no xp")
 
 
 func test_chopper_fells_a_tree_with_light_quick_strikes() -> void:
@@ -58,6 +60,7 @@ func test_chopper_fells_a_tree_with_light_quick_strikes() -> void:
 	assert_eq(tree.node_id, "stump", "15 strikes every 0.4 s take 5.6 s")
 	assert_eq(tree.harvest.hits_left, 2.0, "The chopper does not take the stump")
 	assert_almost_eq(player.stamina.fatigue, 2.25, 0.001, "15 strikes of 5 stamina")
+	assert_eq(player.progression.xp, 14, "The same xp for a tree with any tool")
 
 
 func test_axe_is_taken_over_the_chopper() -> void:
@@ -67,3 +70,23 @@ func test_axe_is_taken_over_the_chopper() -> void:
 	await _hold_interact(3.1)
 	assert_eq(tree.node_id, "stump", "6 strikes every 0.6 s take 3.0 s")
 	assert_almost_eq(player.stamina.fatigue, 1.44, 0.001, "6 strikes of 8 stamina")
+
+
+func test_picked_stick_goes_straight_into_the_inventory() -> void:
+	_place("ground_stick")
+	await _hold_interact(0.05)
+	assert_eq(player.inventory.count("stick"), 1, "No hop and pull: the pickup is instant")
+	assert_eq(_piles().size(), 0)
+
+
+func test_stone_over_the_cap_stays_on_the_ground() -> void:
+	player.inventory.add("log", 7)
+	player.inventory.add("stone", 2)
+	_place("ground_stone")
+	await _hold_interact(0.05)
+	assert_eq(player.inventory.count("stone"), 2, "74 of 75: one more stone does not fit")
+	assert_eq(_piles().size(), 1, "The stone lies on the ground")
+
+
+func _piles() -> Array[Node]:
+	return world.get_children().filter(func(node: Node) -> bool: return node is GroundItem)

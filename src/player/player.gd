@@ -24,17 +24,23 @@ const HINT_COLOR := Color("ffb37a")
 const NEED_TOOL_HINT := "нужен инструмент"
 const BUNDLE_COLOR := Color("9b7a4c")
 const HIT_FLASH_TIME := 0.12
+const XP_COLOR := Color("6fb7e8")
+const LEVEL_COLOR := Color("ffd25e")
+## A ring grows around the player on a new level.
+const LEVEL_FLASH_TIME := 0.6
 ## A dropped pile lands this many tiles in front of the player.
 const DROP_DISTANCE_TILES := 0.8
 
 var stamina: Stamina
 var inventory: Inventory
+var progression: Progression
 var is_resting := false
 var facing := Facing.DOWN
 
 var _move_speed_px: float
 var _accel_time: float
 var _rest_params: Dictionary
+var _items: Dictionary
 var _work: WorkRhythm
 var _interact_radius_px: float
 ## Rows of data/tools.csv and the rhythm of work by hand.
@@ -45,6 +51,7 @@ var _target: ResourceNode
 var _tool: ToolStats
 var _highlighted: ResourceNode
 var _hit_flash := 0.0
+var _level_flash := 0.0
 
 
 func _ready() -> void:
@@ -55,7 +62,10 @@ func _ready() -> void:
 	_accel_time = maxf(float(params.move_accel_time), 0.001)
 	_rest_params = GameData.params("comfort")
 	var gathering := GameData.params("gathering")
-	inventory = Inventory.new(gathering, GameData.table("items"))
+	_items = GameData.table("items")
+	inventory = Inventory.new(gathering, _items)
+	progression = Progression.new(GameData.params("progression"))
+	progression.leveled_up.connect(_on_leveled_up)
 	_tools = GameData.table("tools")
 	_hands_interval = float(gathering.hit_interval)
 	_work = WorkRhythm.new(_hands_interval)
@@ -78,6 +88,7 @@ func _physics_process(delta: float) -> void:
 		regen_mult = CampComfort.rest_regen_mult(comfort, _rest_params)
 	stamina.update(delta, rest_rate, regen_mult)
 	_hit_flash = maxf(_hit_flash - delta, 0.0)
+	_level_flash = maxf(_level_flash - delta, 0.0)
 	queue_redraw()
 
 
@@ -90,7 +101,7 @@ func current_comfort() -> int:
 ## [method Inventory.carry_amount] first.
 func pick_up(item_id: String, amount := 1) -> void:
 	inventory.add(item_id, amount)
-	var item_name: String = GameData.table("items")[item_id].name
+	var item_name: String = _items[item_id].name
 	FloatingText.spawn(get_parent(), position + Vector2(0, -52), "+%d %s" % [amount, item_name])
 
 
@@ -169,7 +180,8 @@ func _gather(delta: float) -> void:
 	if _work.update(delta, stamina, cost) and _target != null:
 		_hit_flash = HIT_FLASH_TIME
 		facing = facing_for(_target.global_position - global_position, facing)
-		_target.hit(_tool.power)
+		var loot := _target.hit(_tool.power)
+		_gain_xp(Progression.loot_xp(loot, _items), _target.position + Vector2(0, -44))
 
 
 ## Work needs a fitting tool in the inventory, the strongest one is taken.
@@ -187,6 +199,20 @@ func _start_work(node: ResourceNode) -> void:
 	_tool = ToolStats.new(tool_id, _tools, _hands_interval)
 	_work.interval = _tool.hit_interval
 	_work.start()
+
+
+## Experience for a result, shown as "+N опыта" over [param at].
+## Rules: docs/systems/tech-tree.md, "Опыт и уровень".
+func _gain_xp(amount: int, at: Vector2) -> void:
+	if amount <= 0:
+		return
+	FloatingText.spawn(get_parent(), at, "+%d опыта" % amount, XP_COLOR)
+	progression.add_xp(amount)
+
+
+func _on_leveled_up(level: int) -> void:
+	_level_flash = LEVEL_FLASH_TIME
+	FloatingText.spawn(get_parent(), position + Vector2(0, -68), "Уровень %d!" % level, LEVEL_COLOR)
 
 
 ## Work goes on while the node is in reach and the tool still fits it:
@@ -255,6 +281,11 @@ func _draw() -> void:
 	_draw_eyes(head)
 	if _target != null and _tool.id not in NodeHarvest.NO_TOOL:
 		_draw_tool()
+	if _level_flash > 0.0:
+		var t := _level_flash / LEVEL_FLASH_TIME
+		var color := LEVEL_COLOR
+		color.a = t
+		draw_arc(Vector2(0, -16), 14.0 + (1.0 - t) * 22.0, 0.0, TAU, 40, color, 3.0, true)
 
 
 ## The tool comes out of the inventory while the player works with it.
