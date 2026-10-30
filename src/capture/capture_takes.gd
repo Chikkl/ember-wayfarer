@@ -3,7 +3,7 @@ extends RefCounted
 ## Takes for capture mode: what the player does in front of the camera.
 ## A take may give items before the first frame ("items") and move the player
 ## ("start", tiles from the campfire). Step kinds: see CaptureDirector.
-## Decision: docs/decisions.md, 2026-10-30.
+## Guide: docs/captures.md, "Режим съёмки".
 
 const ALL := {
 	# Reel "who I am and what the game is": the walk to the fire, gathering,

@@ -1,5 +1,5 @@
 extends GutTest
-## Capture mode (docs/decisions.md, 2026-10-30): launch argument, walking input and takes.
+## Capture mode from docs/captures.md: launch argument, walking input and takes.
 
 
 func after_each() -> void:

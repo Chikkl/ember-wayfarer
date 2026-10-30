@@ -3,7 +3,7 @@ extends Node
 ## Capture mode: plays a take from CaptureTakes by pressing the same actions as
 ## the player, so Movie Maker records real gameplay for reels and visual reviews.
 ## Run: godot --path . --write-movie <file>.avi --fixed-fps 60 -- --capture=<take>
-## Decision: docs/decisions.md, 2026-10-30.
+## Guide: docs/captures.md, "Режим съёмки".
 ##
 ## Steps:
 ## - wait: stand still for "time" seconds;
