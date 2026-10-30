@@ -6,6 +6,12 @@ extends CanvasLayer
 
 @onready var _comfort_label: Label = $Comfort
 @onready var _debug_label: Label = $Debug
+@onready var _inventory_bar: InventoryBar = $Inventory
+
+
+func _ready() -> void:
+	_inventory_bar.setup(player.inventory)
+	_inventory_bar.drop_requested.connect(player.drop_from_slot)
 
 
 func _process(_delta: float) -> void:

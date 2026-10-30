@@ -47,6 +47,19 @@ static func index_by(rows: Array[Dictionary], key: String) -> Dictionary:
 	return result
 
 
+## Parses amounts like "log:3;stick:2" into {"log": 3, "stick": 2}.
+## An empty cell gives an empty Dictionary.
+static func parse_amounts(text: String) -> Dictionary:
+	var result := {}
+	for part in text.split(";", false):
+		var pair := part.split(":")
+		if pair.size() != 2 or not pair[1].is_valid_int():
+			push_error("Wrong amount '%s' in '%s'" % [part, text])
+			continue
+		result[pair[0]] = pair[1].to_int()
+	return result
+
+
 ## Converts a CSV cell: integers, floats and true/false get their types,
 ## everything else stays a String. An empty cell stays an empty String.
 static func parse_cell(cell: String) -> Variant:

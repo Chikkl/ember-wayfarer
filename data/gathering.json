@@ -7,5 +7,7 @@
   "pickup_radius": 1.5,
   "basket_slots": 8,
   "ground_item_lifetime": 300,
-  "hit_interval": 0.6
+  "hit_interval": 0.6,
+  "interact_radius": 1.2,
+  "respawn_radius": 5
 }
