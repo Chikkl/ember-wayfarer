@@ -36,6 +36,20 @@ const ALL := {
 			{"do": "wait", "time": 3.0},
 		],
 	},
+	# The chopper fells a tree with light quick strikes and leaves a stump
+	# it cannot uproot.
+	"chopper-tree":
+	{
+		"items": {"chopper": 1},
+		"steps":
+		[
+			{"do": "walk_to", "target": "tree"},
+			{"do": "zoom", "zoom": 2.5},
+			{"do": "work"},
+			{"do": "collect"},
+			{"do": "wait", "time": 1.5},
+		],
+	},
 	# Reel close-up of the stamina ring: work until exhaustion near the camp,
 	# then sit by the fire while the ring fills.
 	"reel-ring":
