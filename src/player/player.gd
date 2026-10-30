@@ -10,8 +10,6 @@ const GROUP := "player"
 ## sin(22.5°): input closer than this to vertical counts as straight up or down,
 ## anything else, diagonals included, faces left or right.
 const SIDE_FACING_MIN_X := 0.3827
-## Given by the debug key until crafting exists.
-const DEBUG_TOOL := "stone_axe"
 const BODY_COLOR := Color("4f7cac")
 const SKIN_COLOR := Color("f0c9a0")
 const SHADOW_COLOR := Color(0, 0, 0, 0.25)
@@ -91,7 +89,6 @@ func _physics_process(delta: float) -> void:
 	_finish_craft(crafting.update(delta))
 	_move(input, delta)
 	_gather(delta)
-	_debug_give_tool()
 	var rest_rate := 0.0
 	var regen_mult := 1.0
 	if is_resting:
@@ -266,16 +263,6 @@ func _set_highlight(node: ResourceNode) -> void:
 	_highlighted = node
 	if node != null:
 		node.highlighted = true
-
-
-## Temporary until crafting: the debug key gives the stone axe.
-func _debug_give_tool() -> void:
-	if not Input.is_action_just_pressed("debug_give_tool") or inventory.count(DEBUG_TOOL) > 0:
-		return
-	if inventory.carry_amount(DEBUG_TOOL) > 0:
-		pick_up(DEBUG_TOOL)
-	else:
-		FloatingText.spawn(get_parent(), position + Vector2(0, -52), "не унести", HINT_COLOR)
 
 
 func _facing_vector() -> Vector2:
