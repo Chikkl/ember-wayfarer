@@ -14,11 +14,20 @@ extends Node
 ## - rest: press R once;
 ## - press: press "action" once, like T for the tree screen;
 ## - click_tree_node: click "node" on the tree screen;
+## - click_recipe: click "recipe" in the open crafting menu;
 ## - zoom: zoom the camera to "zoom" while the next steps play.
 
 const ARG_PREFIX := "--capture="
 const STEP_KINDS: Array[String] = [
-	"wait", "walk_to", "work", "collect", "rest", "press", "click_tree_node", "zoom"
+	"wait",
+	"walk_to",
+	"work",
+	"collect",
+	"rest",
+	"press",
+	"click_tree_node",
+	"click_recipe",
+	"zoom",
 ]
 const FIRE_TARGET := "fire"
 const UNTIL_EXHAUSTED := "exhausted"
@@ -96,6 +105,7 @@ static func take_problems(take: Dictionary) -> Array[String]:
 			problems.append("unknown item '%s'" % item_id)
 	var nodes := GameData.table("resource_nodes")
 	var tree_nodes := GameData.table("recipe_tree")
+	var recipes := GameData.table("recipes")
 	for step: Dictionary in take.get("steps", []):
 		var kind: String = step.get("do", "")
 		var target: String = step.get("target", FIRE_TARGET)
@@ -109,6 +119,8 @@ static func take_problems(take: Dictionary) -> Array[String]:
 			problems.append("unknown action in %s" % step)
 		elif kind == "click_tree_node" and step.get("node", "") not in tree_nodes:
 			problems.append("unknown tree node in %s" % step)
+		elif kind == "click_recipe" and step.get("recipe", "") not in recipes:
+			problems.append("unknown recipe in %s" % step)
 	return problems
 
 
@@ -184,6 +196,8 @@ func _begin_next_step() -> void:
 			Input.action_press(_step.action)
 		"click_tree_node":
 			_click(_hud.tree_screen().node_center(_step.node), true)
+		"click_recipe":
+			_click(_hud.craft_menu().recipe_center(_step.recipe), true)
 		"zoom":
 			var zoom := Vector2.ONE * float(_step.zoom)
 			create_tween().tween_property(_camera, "zoom", zoom, ZOOM_TIME)
@@ -200,7 +214,7 @@ func _run_step(delta: float) -> bool:
 			return _run_work(delta)
 		"collect":
 			return _run_collect(delta)
-		"rest", "press", "click_tree_node", "zoom":
+		"rest", "press", "click_tree_node", "click_recipe", "zoom":
 			return true
 	push_warning("capture: unknown step %s" % _step)
 	return true
@@ -214,6 +228,8 @@ func _end_step() -> void:
 			Input.action_release(_step.action)
 		"click_tree_node":
 			_click(_hud.tree_screen().node_center(_step.node), false)
+		"click_recipe":
+			_click(_hud.craft_menu().recipe_center(_step.recipe), false)
 	# Only a walk hands its node over to the next step.
 	if _step.get("do", "") != "walk_to":
 		_node = null
