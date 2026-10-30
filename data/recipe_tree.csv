@@ -1,5 +1,5 @@
 id,name,unlocks,requires,cost
-stonework,Обработка камня,chopper;shaped_stick;stone_axe,,1
+stonework,Обработка камня,stone_axe,,1
 weaving,Плетение,bedroll;basket,,1
 carpentry,Плотницкое дело,log_seat,stonework,1
 shelter,Укрытие,lean_to,stonework,1
