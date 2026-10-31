@@ -6,6 +6,9 @@ extends CharacterBody2D
 
 ## Emitted once, when the first hut is built.
 signal step_completed
+## The work button opened a basket; it closes when the player walks away.
+signal basket_opened(basket: Building)
+signal basket_closed
 
 enum Facing { DOWN, UP, LEFT, RIGHT }
 
@@ -49,6 +52,8 @@ var recipe_tree: RecipeTree
 var crafting: Crafting
 ## Set by the main scene: in its mode for taking down, E takes buildings down.
 var build_mode: BuildMode
+## The basket the player has open, null if none.
+var open_basket: Building
 var is_resting := false
 var facing := Facing.DOWN
 
@@ -114,6 +119,7 @@ func _physics_process(delta: float) -> void:
 		rest_rate = CampComfort.rest_rate(comfort, _rest_params)
 		regen_mult = CampComfort.rest_regen_mult(comfort, _rest_params)
 	stamina.update(delta, rest_rate, regen_mult)
+	_keep_basket_open()
 	_hit_flash = maxf(_hit_flash - delta, 0.0)
 	_level_flash = maxf(_level_flash - delta, 0.0)
 	queue_redraw()
@@ -145,7 +151,13 @@ func pick_up(item_id: String, amount := 1) -> void:
 ## Drops one item from slot [param index], or the whole stack, in front of the player.
 ## The pile is not pulled back until the player walks away from it.
 func drop_from_slot(index: int, whole_stack: bool) -> void:
-	var taken := inventory.take(index, inventory.slots[index].get("count", 0) if whole_stack else 1)
+	drop_from(inventory, index, whole_stack)
+
+
+## Drops from slot [param index] of [param slots_of], the player's inventory or
+## an open basket, in front of the player.
+func drop_from(slots_of: Inventory, index: int, whole_stack: bool) -> void:
+	var taken := slots_of.take(index, slots_of.slots[index].get("count", 0) if whole_stack else 1)
 	if taken.is_empty():
 		return
 	var item := GroundItem.new()
@@ -213,14 +225,7 @@ func _gather(delta: float) -> void:
 		_take_down(delta)
 		return
 	if Input.is_action_just_pressed("interact") and not is_resting:
-		var site := _nearest_blueprint()
-		var node_distance := INF
-		if nearest != null:
-			node_distance = global_position.distance_to(nearest.global_position)
-		if site != null and site.distance_to(global_position) <= node_distance:
-			_start_site(site)
-		elif nearest != null:
-			_start_work(nearest)
+		_interact(nearest)
 	var held := Input.is_action_pressed("interact") and not is_resting
 	_build(delta, held)
 	if not held or not _can_keep_working():
@@ -252,18 +257,62 @@ func _start_work(node: ResourceNode) -> void:
 	_work.start()
 
 
+## The work button acts on the nearest thing in reach: a resource node,
+## a blueprint or a basket.
+func _interact(nearest: ResourceNode) -> void:
+	var node_distance := INF
+	if nearest != null:
+		node_distance = global_position.distance_to(nearest.global_position)
+	var building := _nearest_building(true)
+	if building != null and building.distance_to(global_position) <= node_distance:
+		if building.is_blueprint:
+			_start_site(building)
+		else:
+			_open_basket(building)
+	elif nearest != null:
+		_start_work(nearest)
+
+
 ## The nearest blueprint in reach, or null.
 func _nearest_blueprint() -> Building:
-	return _nearest_building(true)
+	var building := _nearest_building(true)
+	return building if building != null and building.is_blueprint else null
 
 
-## The nearest building in reach, only blueprints if [param blueprints_only], or null.
-func _nearest_building(blueprints_only := false) -> Building:
+func _open_basket(basket: Building) -> void:
+	if open_basket == basket:
+		return
+	close_basket()
+	open_basket = basket
+	basket_opened.emit(basket)
+
+
+func close_basket() -> void:
+	if open_basket == null:
+		return
+	open_basket = null
+	basket_closed.emit()
+
+
+## A basket closes when the player walks away or it is taken down.
+func _keep_basket_open() -> void:
+	if open_basket == null:
+		return
+	if not is_instance_valid(open_basket) or not open_basket.is_inside_tree():
+		close_basket()
+	elif open_basket.distance_to(global_position) > _interact_radius_px:
+		close_basket()
+
+
+## The nearest building in reach, or null. With [param usable_only], only
+## buildings the work button does something with: blueprints and baskets.
+func _nearest_building(usable_only := false) -> Building:
 	var best: Building = null
 	var best_distance := _interact_radius_px
 	for building: Building in get_tree().get_nodes_in_group(Building.BUILDINGS_GROUP):
 		var distance := building.distance_to(global_position)
-		if (building.is_blueprint or not blueprints_only) and distance <= best_distance:
+		var usable := building.is_blueprint or building.storage != null
+		if (usable or not usable_only) and distance <= best_distance:
 			best = building
 			best_distance = distance
 	return best

@@ -17,11 +17,18 @@ const BANNER_TIME := 5.0
 @onready var _xp_bar: XpBar = $Experience
 @onready var _tree_screen: TreeScreen = $Tree
 @onready var _craft_menu: CraftMenu = $Craft
+@onready var _basket_panel: BasketPanel = $Basket
 
 
 func _ready() -> void:
 	_inventory_bar.setup(player.inventory)
 	_inventory_bar.drop_requested.connect(player.drop_from_slot)
+	_inventory_bar.quick_move_requested.connect(_to_basket)
+	_basket_panel.hide()
+	_basket_panel.drop_requested.connect(_drop_from_basket)
+	_basket_panel.quick_move_requested.connect(_from_basket)
+	player.basket_opened.connect(func(basket: Building) -> void: _basket_panel.open(basket.storage))
+	player.basket_closed.connect(_basket_panel.hide)
 	_xp_bar.setup(player.progression)
 	_comfort_badge.setup(player)
 	_tree_screen.setup(player.recipe_tree, player.progression, GameData.table("recipes"))
@@ -50,6 +57,33 @@ func _physics_process(_delta: float) -> void:
 		_tree_screen.hide()
 		_craft_menu.close()
 		build_mode.stop()
+		player.close_basket()
+
+
+## Shift and the left button on the inventory: the stack goes into the open basket.
+func _to_basket(index: int) -> void:
+	if player.open_basket != null:
+		SlotMoves.quick_move(player.inventory, index, player.open_basket.storage)
+
+
+## Shift and the left button on the basket: the stack goes into the inventory.
+func _from_basket(index: int) -> void:
+	if player.open_basket != null:
+		SlotMoves.quick_move(player.open_basket.storage, index, player.inventory)
+
+
+func _drop_from_basket(index: int, whole_stack: bool) -> void:
+	if player.open_basket != null:
+		player.drop_from(player.open_basket.storage, index, whole_stack)
+
+
+## The inventory bar and the open basket, for capture mode drags.
+func inventory_bar() -> InventoryBar:
+	return _inventory_bar
+
+
+func basket_panel() -> BasketPanel:
+	return _basket_panel
 
 
 func _on_build_requested(recipe_id: String) -> void:

@@ -7,6 +7,7 @@ extends ComfortItem
 ## data/buildings.csv. Placeholder graphics until the art pass.
 
 const BUILDINGS_GROUP := "buildings"
+const BASKET := "basket"
 const BLUEPRINT_ALPHA := 0.35
 const OUTLINE_COLOR := Color(1, 1, 1, 0.7)
 const FILL_COLOR := Color(1, 1, 1, 0.1)
@@ -30,6 +31,8 @@ var delivered := {}
 ## Seconds of assembly done.
 var assembled := 0.0
 var size_px: Vector2
+## Slots of a basket, null for other buildings. A basket has no load cap.
+var storage: Inventory
 ## How far the player has taken it down, from 0 to 1; 0 when nobody does.
 var teardown := 0.0:
 	set(value):
@@ -139,6 +142,11 @@ func progress() -> float:
 ## Turns the blueprint into the finished building; a comfort item joins the camp count.
 func complete() -> void:
 	is_blueprint = false
+	if item_id == BASKET:
+		var params := GameData.params("gathering").duplicate()
+		params.inventory_slots = params.basket_slots
+		storage = Inventory.new(params, _items)
+		storage.limit_weight = false
 	if item_id in GameData.table("comfort_items"):
 		add_to_group(ComfortItem.GROUP)
 	queue_redraw()
@@ -158,9 +166,10 @@ func refund(share: float) -> Dictionary:
 	return back
 
 
-## Whether the building can be taken down now. Rules: docs/systems/crafting.md, "Разбор".
+## Whether the building can be taken down now: a basket only when it is empty.
+## Rules: docs/systems/crafting.md, "Разбор".
 func can_dismantle() -> bool:
-	return true
+	return storage == null or storage.is_empty()
 
 
 func _weight(amounts: Dictionary) -> float:

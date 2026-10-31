@@ -11,6 +11,7 @@
 [ext_resource type="Script" path="res://src/ui/craft_menu.gd" id="9_craft"]
 [ext_resource type="Script" path="res://src/camp/build_mode.gd" id="10_build"]
 [ext_resource type="Script" path="res://src/ui/comfort_badge.gd" id="11_comfort"]
+[ext_resource type="Script" path="res://src/ui/basket_panel.gd" id="12_basket"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
@@ -47,6 +48,9 @@ theme_override_font_sizes/font_size = 14
 [node name="Inventory" type="Control" parent="Hud"]
 script = ExtResource("6_inventory")
 
+[node name="Basket" type="Control" parent="Hud"]
+script = ExtResource("12_basket")
+
 [node name="Experience" type="Control" parent="Hud"]
 script = ExtResource("7_xp")
 
@@ -62,4 +66,4 @@ offset_top = 66.0
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 4
 theme_override_font_sizes/font_size = 14
-text = "WASD — ходить · R — сесть или встать · E (удерживать) — собирать · ЛКМ / ПКМ по ячейке — выбросить один / стопку · C — крафт · B — разбор построек · T — дерево рецептов"
+text = "WASD — ходить · R — сесть или встать · E (удерживать) — собирать · перетащить ЛКМ, ПКМ — выбросить один, Shift+ЛКМ — в корзину · C — крафт · B — разбор построек · T — дерево рецептов"
