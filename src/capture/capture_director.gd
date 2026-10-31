@@ -7,7 +7,8 @@ extends Node
 ##
 ## Steps:
 ## - wait: stand still for "time" seconds;
-## - walk_to: walk to "target", the fire or the nearest workable node with this id;
+## - walk_to: walk to "target": the fire, "blueprint" for the nearest blueprint, or
+##   the nearest workable node with this id; or to "at", [x, y] tiles from the fire;
 ## - work: hold E on the node in reach until it is used up or turns into another
 ##   node; with "until": "exhausted" keep chopping trees and stumps until exhaustion;
 ## - collect: walk over the loot around the player;
@@ -15,6 +16,10 @@ extends Node
 ## - press: press "action" once, like T for the tree screen;
 ## - click_tree_node: click "node" on the tree screen;
 ## - click_recipe: click "recipe" in the open crafting menu;
+## - place: point at the tile "at", [x, y] from the fire, as the top left of the building
+##   chosen in build mode, show the preview there for "time" seconds, then click;
+## - build: hold E at the nearest blueprint until it is built or lacks materials;
+## - hover_comfort: point at the comfort badge, so its groups open;
 ## - zoom: zoom the camera to "zoom" while the next steps play.
 
 const ARG_PREFIX := "--capture="
@@ -27,9 +32,13 @@ const STEP_KINDS: Array[String] = [
 	"press",
 	"click_tree_node",
 	"click_recipe",
+	"place",
+	"build",
+	"hover_comfort",
 	"zoom",
 ]
 const FIRE_TARGET := "fire"
+const BLUEPRINT_TARGET := "blueprint"
 const UNTIL_EXHAUSTED := "exhausted"
 const HELD_ACTIONS: Array[String] = [
 	"move_left", "move_right", "move_up", "move_down", "interact", "rest"
@@ -55,6 +64,13 @@ const CHOP_IDS: Array[String] = ["tree", "stump"]
 const STUCK_TIME := 0.3
 const DETOUR_TIME := 0.3
 const DETOUR_TRIES := 4
+## The place step shows the preview this long before the click, unless the step
+## says otherwise: viewers should see where the building goes.
+const PLACE_AIM_TIME := 1.2
+## The build step gives up after this long at a blueprint that lacks materials.
+const BUILD_GIVE_UP_TIME := 0.3
+## The player stands this far in front of a blueprint to build it, in pixels.
+const BLUEPRINT_FRONT_PX := 10.0
 ## A loot pile this close that is still on the ground cannot be carried.
 const LOOT_REACHED_PX := 2.0
 ## A step that runs longer than this is cut short with a warning.
@@ -74,6 +90,8 @@ var _interact_radius_px: float
 ## The node the step walks to or works on. An empty id means any id will do.
 var _node: ResourceNode
 var _node_id := ""
+## The blueprint the build step works on.
+var _site: Building
 ## Where the player stands to work [member _node].
 var _work_spot := Vector2.ZERO
 var _walking := false
@@ -85,6 +103,10 @@ var _stuck_time := 0.0
 var _detours := 0
 var _detour_left := 0.0
 var _detour_direction := Vector2.ZERO
+## Where the last mouse event of the take pointed, on the screen.
+var _mouse_screen := Vector2.ZERO
+## The place step has clicked and waits a frame for the blueprint.
+var _placed := false
 
 
 ## The take name from the user arguments after "--", or "" outside capture mode.
@@ -111,8 +133,10 @@ static func take_problems(take: Dictionary) -> Array[String]:
 		var target: String = step.get("target", FIRE_TARGET)
 		if kind not in STEP_KINDS:
 			problems.append("unknown step %s" % step)
-		elif kind == "walk_to" and target != FIRE_TARGET and target not in nodes:
+		elif kind == "walk_to" and not step.has("at") and not _known_target(target, nodes):
 			problems.append("unknown target in %s" % step)
+		elif kind == "place" and not step.has("at"):
+			problems.append("no 'at' in %s" % step)
 		elif kind == "work" and step.get("until", UNTIL_EXHAUSTED) != UNTIL_EXHAUSTED:
 			problems.append("unknown 'until' in %s" % step)
 		elif kind == "press" and not InputMap.has_action(step.get("action", "")):
@@ -122,6 +146,10 @@ static func take_problems(take: Dictionary) -> Array[String]:
 		elif kind == "click_recipe" and step.get("recipe", "") not in recipes:
 			problems.append("unknown recipe in %s" % step)
 	return problems
+
+
+static func _known_target(target: String, nodes: Dictionary) -> bool:
+	return target in [FIRE_TARGET, BLUEPRINT_TARGET] or target in nodes
 
 
 ## Strengths of the move actions that walk at full speed toward [param direction].
@@ -181,10 +209,7 @@ func _begin_next_step() -> void:
 	print("capture %.2f s: %s" % [_clock, _step])
 	match _step.do:
 		"walk_to":
-			_node = null if _step.target == FIRE_TARGET else _nearest_node([_step.target])
-			if _node != null:
-				_work_spot = _work_spot_for(_node)
-			_start_walk()
+			_begin_walk_to()
 		"work":
 			_begin_work()
 		"collect":
@@ -198,6 +223,14 @@ func _begin_next_step() -> void:
 			_click(_hud.tree_screen().node_center(_step.node), true)
 		"click_recipe":
 			_click(_hud.craft_menu().recipe_center(_step.recipe), true)
+		"place":
+			_placed = false
+			_move_mouse(_tile_center(_step.at, _hud.build_mode.recipe_id))
+		"build":
+			_site = _nearest_blueprint()
+			Input.action_press("interact")
+		"hover_comfort":
+			_move_mouse(_hud.comfort_badge().center())
 		"zoom":
 			var zoom := Vector2.ONE * float(_step.zoom)
 			create_tween().tween_property(_camera, "zoom", zoom, ZOOM_TIME)
@@ -205,19 +238,25 @@ func _begin_next_step() -> void:
 
 ## Runs one frame of the step. True when the step is over.
 func _run_step(delta: float) -> bool:
+	var done := true
 	match _step.do:
 		"wait":
-			return _step_time >= float(_step.time)
+			done = _step_time >= float(_step.time)
 		"walk_to":
-			return _run_walk_to(delta)
+			done = _run_walk_to(delta)
 		"work":
-			return _run_work(delta)
+			done = _run_work(delta)
 		"collect":
-			return _run_collect(delta)
-		"rest", "press", "click_tree_node", "click_recipe", "zoom":
-			return true
-	push_warning("capture: unknown step %s" % _step)
-	return true
+			done = _run_collect(delta)
+		"build":
+			done = _run_build()
+		"place":
+			done = _run_place()
+		"rest", "press", "click_tree_node", "click_recipe", "hover_comfort", "zoom":
+			done = true
+		_:
+			push_warning("capture: unknown step %s" % _step)
+	return done
 
 
 func _end_step() -> void:
@@ -230,13 +269,39 @@ func _end_step() -> void:
 			_click(_hud.tree_screen().node_center(_step.node), false)
 		"click_recipe":
 			_click(_hud.craft_menu().recipe_center(_step.recipe), false)
+		"place":
+			_click(_mouse_screen, false)
 	# Only a walk hands its node over to the next step.
 	if _step.get("do", "") != "walk_to":
 		_node = null
 	_step = {}
 
 
+func _begin_walk_to() -> void:
+	_node = null
+	_site = null
+	var target: String = _step.get("target", "")
+	if target == BLUEPRINT_TARGET:
+		_site = _nearest_blueprint(INF)
+		if _site != null:
+			_work_spot = _blueprint_spot(_site.footprint())
+	elif _step.has("at"):
+		_work_spot = _campfire.global_position + _tiles(_step.at) * Units.TILE_PX
+	elif target != FIRE_TARGET:
+		_node = _nearest_node([target])
+		if _node != null:
+			_work_spot = _work_spot_for(_node)
+	_start_walk()
+
+
 func _run_walk_to(delta: float) -> bool:
+	if _step.get("target", "") == BLUEPRINT_TARGET:
+		if _site == null:
+			push_warning("capture: no blueprint to walk to")
+			return true
+		return _walk_toward(_work_spot, ARRIVE_PX, delta)
+	if _step.has("at"):
+		return _walk_toward(_work_spot, ARRIVE_PX, delta)
 	if _step.target == FIRE_TARGET:
 		var spot := _campfire.global_position + FIRE_SPOT_TILES * Units.TILE_PX
 		return _walk_toward(spot, ARRIVE_PX, delta)
@@ -346,6 +411,79 @@ func _walk_toward(point: Vector2, stop_px: float, delta: float) -> bool:
 			_stuck_time = 0.0
 	_hold_move(offset)
 	return false
+
+
+## Clicks once the preview has been shown long enough. The step ends a frame
+## later, when the game has handled the click and the blueprint stands.
+func _run_place() -> bool:
+	if _placed:
+		return true
+	if _step_time >= float(_step.get("time", PLACE_AIM_TIME)):
+		_click(_mouse_screen, true)
+		_placed = true
+	return false
+
+
+## Holds E at the blueprint until it is built; a blueprint that lacks materials
+## takes what the player has, then the step ends.
+func _run_build() -> bool:
+	if _site == null:
+		push_warning("capture: no blueprint in reach")
+		return true
+	if not _site.is_blueprint:
+		return true
+	return not _site.has_all_materials() and _step_time >= BUILD_GIVE_UP_TIME
+
+
+## A spot just outside the side of [param rect] nearest to the player, so the
+## walk does not run into the blueprint itself.
+func _blueprint_spot(rect: Rect2) -> Vector2:
+	var center := rect.get_center()
+	var spots: Array[Vector2] = [
+		Vector2(center.x, rect.end.y + BLUEPRINT_FRONT_PX),
+		Vector2(center.x, rect.position.y - BLUEPRINT_FRONT_PX),
+		Vector2(rect.position.x - BLUEPRINT_FRONT_PX, center.y),
+		Vector2(rect.end.x + BLUEPRINT_FRONT_PX, center.y),
+	]
+	var best := spots[0]
+	for spot in spots:
+		if spot.distance_to(_player.global_position) < best.distance_to(_player.global_position):
+			best = spot
+	return best
+
+
+## The nearest blueprint within [param radius_px] of the player, or null.
+func _nearest_blueprint(radius_px := -1.0) -> Building:
+	var best: Building = null
+	var best_distance := _interact_radius_px if radius_px < 0.0 else radius_px
+	for building: Building in get_tree().get_nodes_in_group(Building.BUILDINGS_GROUP):
+		var distance := building.distance_to(_player.global_position)
+		if building.is_blueprint and distance <= best_distance:
+			best = building
+			best_distance = distance
+	return best
+
+
+## The screen point over the center of the building that has its top left tile
+## at [param tile], tiles from the fire.
+func _tile_center(tile: Array, recipe_id: String) -> Vector2:
+	var size: Dictionary = GameData.table("buildings")[recipe_id]
+	var center := _tiles(tile) + Vector2(int(size.width), int(size.height)) / 2.0
+	var world := _campfire.global_position + center * Units.TILE_PX
+	return get_viewport().get_canvas_transform() * world
+
+
+func _tiles(cell: Array) -> Vector2:
+	return Vector2(float(cell[0]), float(cell[1]))
+
+
+## A mouse move to [param at] on the screen, so build mode moves its preview there.
+func _move_mouse(at: Vector2) -> void:
+	_mouse_screen = at
+	var event := InputEventMouseMotion.new()
+	event.position = at
+	event.global_position = at
+	Input.parse_input_event(event)
 
 
 ## A left mouse button event at [param at] on the screen, the way a player clicks.
