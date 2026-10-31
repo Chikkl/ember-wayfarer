@@ -173,6 +173,72 @@ const ALL := {
 			{"do": "wait", "time": 3.5},
 		],
 	},
+	# Taking a building down: a log seat is built, B opens the mode for taking
+	# down, holding E takes the seat down and gives the log back.
+	"camp-dismantle":
+	{
+		"xp": 81,
+		"items": {"log": 1},
+		"steps":
+		[
+			{"do": "press", "action": "tree"},
+			{"do": "wait", "time": 2.0},
+			{"do": "click_tree_node", "node": "stonework"},
+			{"do": "wait", "time": 0.7},
+			{"do": "click_tree_node", "node": "carpentry"},
+			{"do": "wait", "time": 1.5},
+			{"do": "press", "action": "tree"},
+			{"do": "press", "action": "craft"},
+			{"do": "wait", "time": 2.0},
+			{"do": "click_recipe", "recipe": "log_seat"},
+			{"do": "place", "at": [2, 1]},
+			{"do": "walk_to", "target": "blueprint"},
+			{"do": "build"},
+			{"do": "wait", "time": 2.0},
+			{"do": "press", "action": "build"},
+			{"do": "wait", "time": 2.0},
+			{"do": "walk_to", "target": "building"},
+			{"do": "take_down"},
+			{"do": "wait", "time": 2.0},
+			{"do": "press", "action": "build"},
+			{"do": "wait", "time": 1.0},
+		],
+	},
+	# The basket: built, opened with E, a stack dragged in, a stack moved with
+	# Shift, a stack dragged back, stones dragged out onto the ground, then
+	# the player walks away and the basket closes.
+	"camp-basket":
+	{
+		"xp": 30,
+		"items": {"stick": 10, "plait": 2, "leaves": 12, "stone": 3},
+		"steps":
+		[
+			{"do": "press", "action": "tree"},
+			{"do": "wait", "time": 2.0},
+			{"do": "click_tree_node", "node": "weaving"},
+			{"do": "wait", "time": 1.5},
+			{"do": "press", "action": "tree"},
+			{"do": "press", "action": "craft"},
+			{"do": "wait", "time": 2.0},
+			{"do": "click_recipe", "recipe": "basket"},
+			{"do": "place", "at": [2, 1]},
+			{"do": "walk_to", "target": "blueprint"},
+			{"do": "build"},
+			{"do": "wait", "time": 1.5},
+			{"do": "press", "action": "interact"},
+			{"do": "wait", "time": 2.0},
+			{"do": "drag", "from": "inventory", "index": 2, "to": "basket", "to_index": 0},
+			{"do": "wait", "time": 1.5},
+			{"do": "shift_click", "grid": "inventory", "index": 0},
+			{"do": "wait", "time": 1.5},
+			{"do": "drag", "from": "basket", "index": 0, "to": "inventory", "to_index": 5},
+			{"do": "wait", "time": 1.5},
+			{"do": "drag", "from": "inventory", "index": 3, "to": "ground"},
+			{"do": "wait", "time": 2.0},
+			{"do": "walk_to", "at": [-1, 0]},
+			{"do": "wait", "time": 1.5},
+		],
+	},
 	# Reel close-up of the stamina ring: work until exhaustion near the camp,
 	# then sit by the fire while the ring fills.
 	"reel-ring":
