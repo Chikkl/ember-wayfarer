@@ -11,6 +11,7 @@ enum Facing { DOWN, UP, LEFT, RIGHT }
 
 const GROUP := "player"
 const NEED_MATERIALS_HINT := "нужны материалы"
+const EMPTY_FIRST_HINT := "сначала выложи всё"
 const COMFORT_COLOR := Color("ffb37a")
 ## Built last, it finishes step 1.
 const FINALE_BUILDING := "hut"
@@ -46,6 +47,8 @@ var inventory: Inventory
 var progression: Progression
 var recipe_tree: RecipeTree
 var crafting: Crafting
+## Set by the main scene: in its mode for taking down, E takes buildings down.
+var build_mode: BuildMode
 var is_resting := false
 var facing := Facing.DOWN
 
@@ -64,6 +67,10 @@ var _tool: ToolStats
 var _highlighted: ResourceNode
 ## The blueprint the player builds while holding the work button.
 var _site: Building
+## The building the player takes down while holding the work button.
+var _teardown: Building
+var _teardown_time := 0.0
+var _dismantle_time: float
 var _step_done := false
 var _hit_flash := 0.0
 var _level_flash := 0.0
@@ -83,6 +90,7 @@ func _ready() -> void:
 	progression.leveled_up.connect(_on_leveled_up)
 	recipe_tree = RecipeTree.new(GameData.table("recipe_tree"))
 	crafting = Crafting.new(GameData.table("recipes"), inventory, recipe_tree)
+	_dismantle_time = float(GameData.params("crafting").dismantle_time)
 	_tools = GameData.table("tools")
 	_hands_interval = float(gathering.hit_interval)
 	_work = WorkRhythm.new(_hands_interval)
@@ -198,6 +206,12 @@ func _gather(delta: float) -> void:
 	var nearest := nearest_node(
 		get_tree().get_nodes_in_group(ResourceNode.GROUP), global_position, _interact_radius_px
 	)
+	if build_mode != null and build_mode.is_dismantling():
+		_work.stop()
+		_target = null
+		_set_highlight(null)
+		_take_down(delta)
+		return
 	if Input.is_action_just_pressed("interact") and not is_resting:
 		var site := _nearest_blueprint()
 		var node_distance := INF
@@ -240,14 +254,78 @@ func _start_work(node: ResourceNode) -> void:
 
 ## The nearest blueprint in reach, or null.
 func _nearest_blueprint() -> Building:
+	return _nearest_building(true)
+
+
+## The nearest building in reach, only blueprints if [param blueprints_only], or null.
+func _nearest_building(blueprints_only := false) -> Building:
 	var best: Building = null
 	var best_distance := _interact_radius_px
 	for building: Building in get_tree().get_nodes_in_group(Building.BUILDINGS_GROUP):
 		var distance := building.distance_to(global_position)
-		if building.is_blueprint and distance <= best_distance:
+		if (building.is_blueprint or not blueprints_only) and distance <= best_distance:
 			best = building
 			best_distance = distance
 	return best
+
+
+## In the mode for taking down: holding E at a building for dismantle_time
+## takes it down and gives the materials back. Rules: docs/systems/crafting.md, "Разбор".
+func _take_down(delta: float) -> void:
+	var held := Input.is_action_pressed("interact") and not is_resting
+	if Input.is_action_just_pressed("interact") and not is_resting:
+		_stop_take_down()
+		_teardown = _nearest_building()
+		if _teardown != null and not _teardown.can_dismantle():
+			var top := _teardown.position - Vector2(0, _teardown.size_px.y + 20)
+			FloatingText.spawn(get_parent(), top, EMPTY_FIRST_HINT, HINT_COLOR)
+			_teardown = null
+	if _teardown == null:
+		return
+	if not held or not is_instance_valid(_teardown):
+		_stop_take_down()
+		return
+	if _teardown.distance_to(global_position) > _interact_radius_px:
+		_stop_take_down()
+		return
+	_teardown_time += delta
+	_teardown.teardown = _teardown_time / _dismantle_time
+	if _teardown_time >= _dismantle_time:
+		var building := _teardown
+		_stop_take_down()
+		var share := float(GameData.params("crafting").dismantle_refund)
+		_take_back(building.refund(share), building.position)
+		building.queue_free()
+
+
+func _stop_take_down() -> void:
+	if is_instance_valid(_teardown):
+		_teardown.teardown = 0.0
+	_teardown = null
+	_teardown_time = 0.0
+
+
+## Materials back into the inventory, what does not fit falls in piles at [param at].
+func _take_back(materials: Dictionary, at: Vector2) -> void:
+	var y := -52.0
+	var piles := 0
+	for item_id: String in materials:
+		var count: int = materials[item_id]
+		var fit := inventory.carry_amount(item_id, count)
+		if fit > 0:
+			inventory.add(item_id, fit)
+			var text := "+%d %s" % [fit, _items[item_id].name]
+			FloatingText.spawn(get_parent(), position + Vector2(0, y), text)
+			y -= 14.0
+		if count > fit:
+			var pile := GroundItem.new()
+			pile.item_id = item_id
+			pile.count = count - fit
+			pile.position = at
+			pile.land_at = at + Vector2(-12 + 12 * piles, 10)
+			piles += 1
+			pile.wait_for_player_to_leave = true
+			get_parent().add_child(pile)
 
 
 ## The work button at a blueprint: first every missing material from the

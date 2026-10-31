@@ -123,3 +123,51 @@ func test_no_materials_no_progress() -> void:
 	Input.action_release("interact")
 	assert_true(seat.is_blueprint)
 	assert_eq(seat.assembled, 0.0)
+
+
+func test_taking_down_gives_back_what_went_in() -> void:
+	var lean_to := _blueprint("lean_to")
+	inventory.add("log", 2)
+	lean_to.deliver_from(inventory)
+	assert_eq(lean_to.refund(1.0), {"log": 2}, "A blueprint gives back what was delivered")
+	lean_to.complete()
+	assert_eq(lean_to.refund(1.0), {"log": 2, "stick": 6, "plait": 2, "leaves": 8})
+	assert_eq(lean_to.refund(0.5), {"log": 1, "stick": 3, "plait": 1, "leaves": 4})
+
+
+func _dismantling_player() -> Player:
+	var player: Player = PLAYER_SCENE.instantiate()
+	world.add_child(player)
+	var fire := Node2D.new()
+	world.add_child(fire)
+	var mode := BuildMode.new()
+	world.add_child(mode)
+	mode.setup(player, fire)
+	mode.start_dismantle()
+	player.build_mode = mode
+	return player
+
+
+func test_holding_e_in_the_mode_takes_a_building_down() -> void:
+	var player := _dismantling_player()
+	var seat := _blueprint("log_seat", Vector2(0, 40))
+	seat.complete()
+	Input.action_press("interact")
+	await wait_physics_frames(roundi(1.2 * FPS))
+	Input.action_release("interact")
+	assert_false(is_instance_valid(seat) and seat.is_inside_tree(), "Taken down in 1 s")
+	assert_eq(player.inventory.count("log"), 1, "The log is back")
+
+
+func test_what_does_not_fit_falls_on_the_ground() -> void:
+	var player := _dismantling_player()
+	player.inventory.add("log", 7)
+	player.inventory.add("stone", 2)
+	var seat := _blueprint("log_seat", Vector2(0, 40))
+	seat.complete()
+	Input.action_press("interact")
+	await wait_physics_frames(roundi(1.2 * FPS))
+	Input.action_release("interact")
+	assert_eq(player.inventory.count("log"), 7, "74 of 75: the log does not fit")
+	var piles := world.get_children().filter(func(node: Node) -> bool: return node is GroundItem)
+	assert_eq(piles.size(), 1)

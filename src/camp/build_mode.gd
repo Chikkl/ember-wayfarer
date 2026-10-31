@@ -2,6 +2,7 @@ class_name BuildMode
 extends Node2D
 ## Build mode: a preview of the chosen building follows the cursor, snapped to
 ## tiles; a left click puts a blueprint there, a right click leaves the mode.
+## Without a chosen building it is the mode for taking buildings down (B).
 ## The cursor comes from mouse events, so capture mode can place buildings too.
 ## Rules: docs/systems/crafting.md, "Постройки". Values: data/crafting.json.
 
@@ -10,9 +11,10 @@ signal placed(building: Building)
 const VALID_COLOR := Color(0.55, 0.95, 0.45, 0.35)
 const INVALID_COLOR := Color(1.0, 0.35, 0.3, 0.35)
 const CAMP_BORDER_COLOR := Color(1.0, 0.7, 0.35, 0.6)
+const TEARDOWN_OUTLINE_COLOR := Color(1.0, 0.6, 0.3, 0.8)
 
 var active := false
-## The building to place.
+## The building to place, "" in the mode for taking buildings down.
 var recipe_id := ""
 
 var _player: Player
@@ -35,6 +37,17 @@ func start(building_id: String) -> void:
 	recipe_id = building_id
 	active = true
 	queue_redraw()
+
+
+## The mode for taking buildings down: no preview, buildings are outlined.
+func start_dismantle() -> void:
+	recipe_id = ""
+	active = true
+	queue_redraw()
+
+
+func is_dismantling() -> bool:
+	return active and recipe_id.is_empty()
 
 
 func stop() -> void:
@@ -87,7 +100,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if click == null or not click.pressed:
 		return
 	_cursor_screen = click.position
-	if click.button_index == MOUSE_BUTTON_LEFT:
+	if click.button_index == MOUSE_BUTTON_LEFT and not recipe_id.is_empty():
 		place()
 		get_viewport().set_input_as_handled()
 	elif click.button_index == MOUSE_BUTTON_RIGHT:
@@ -97,7 +110,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _physics_process(_delta: float) -> void:
 	if active:
-		_valid = can_place(preview_rect())
+		_valid = not recipe_id.is_empty() and can_place(preview_rect())
 		queue_redraw()
 
 
@@ -105,6 +118,10 @@ func _draw() -> void:
 	if not active:
 		return
 	draw_arc(_campfire.global_position, _camp_radius_px, 0.0, TAU, 96, CAMP_BORDER_COLOR, 2.0, true)
+	if recipe_id.is_empty():
+		for building: Building in get_tree().get_nodes_in_group(Building.BUILDINGS_GROUP):
+			draw_rect(building.footprint().grow(2.0), TEARDOWN_OUTLINE_COLOR, false, 2.0)
+		return
 	var rect := preview_rect()
 	draw_rect(rect, VALID_COLOR if _valid else INVALID_COLOR)
 	draw_rect(rect, Color(1, 1, 1, 0.6), false, 1.5)

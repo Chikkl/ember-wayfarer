@@ -3,7 +3,7 @@ extends ComfortItem
 ## A building of step 1. First a blueprint: it takes materials from the player
 ## and is assembled by holding the work button. Then the finished building,
 ## counted by the camp if it is a comfort item.
-## Rules: docs/systems/crafting.md, "Постройки". Values: data/recipes.csv,
+## Rules: docs/systems/crafting.md, "Постройки" and "Разбор". Values: data/recipes.csv,
 ## data/buildings.csv. Placeholder graphics until the art pass.
 
 const BUILDINGS_GROUP := "buildings"
@@ -22,6 +22,7 @@ const WOOD_COLOR := Color("8a6238")
 const DARK_WOOD_COLOR := Color("6b4a2e")
 const LEAF_COLOR := Color("5b8a3c")
 const PLAIT_COLOR := Color("a07a4a")
+const TEARDOWN_COLOR := Color("ff9a4a")
 
 var is_blueprint := true
 ## Materials put into the blueprint, {item_id: count}.
@@ -29,6 +30,11 @@ var delivered := {}
 ## Seconds of assembly done.
 var assembled := 0.0
 var size_px: Vector2
+## How far the player has taken it down, from 0 to 1; 0 when nobody does.
+var teardown := 0.0:
+	set(value):
+		teardown = value
+		queue_redraw()
 
 var _recipe: Dictionary
 var _items: Dictionary
@@ -138,6 +144,25 @@ func complete() -> void:
 	queue_redraw()
 
 
+## What taking it down gives back: everything delivered into a blueprint, or
+## [param share] of the recipe materials of a finished building.
+func refund(share: float) -> Dictionary:
+	if is_blueprint:
+		return delivered.duplicate()
+	var back := {}
+	var needed := materials()
+	for item: String in needed:
+		var count := floori(needed[item] * share + 0.0001)
+		if count > 0:
+			back[item] = count
+	return back
+
+
+## Whether the building can be taken down now. Rules: docs/systems/crafting.md, "Разбор".
+func can_dismantle() -> bool:
+	return true
+
+
 func _weight(amounts: Dictionary) -> float:
 	var total := 0.0
 	for item: String in amounts:
@@ -152,6 +177,12 @@ func _process(_delta: float) -> void:
 
 func _draw() -> void:
 	var rect := Rect2(Vector2(-size_px.x / 2.0, -size_px.y), size_px)
+	if teardown > 0.0:
+		var top := Vector2(0, rect.position.y - RING_RADIUS - 6)
+		draw_arc(top, RING_RADIUS, 0.0, TAU, 32, RING_BACK, 4.0, true)
+		draw_arc(
+			top, RING_RADIUS, -PI / 2.0, -PI / 2.0 + TAU * teardown, 32, TEARDOWN_COLOR, 3.0, true
+		)
 	if not is_blueprint:
 		_draw_shape(rect, 1.0)
 		return

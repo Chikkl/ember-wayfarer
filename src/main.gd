@@ -21,6 +21,7 @@ const WORLD_SEED := 7
 
 func _ready() -> void:
 	_build_mode.setup(_player, _campfire)
+	_player.build_mode = _build_mode
 	var rng := RandomNumberGenerator.new()
 	rng.seed = WORLD_SEED
 	for node_id: String in NODE_COUNTS:

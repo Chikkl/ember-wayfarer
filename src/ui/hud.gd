@@ -39,6 +39,13 @@ func _physics_process(_delta: float) -> void:
 	elif Input.is_action_just_pressed("craft"):
 		_tree_screen.hide()
 		_craft_menu.toggle()
+	elif Input.is_action_just_pressed("build"):
+		_tree_screen.hide()
+		_craft_menu.close()
+		if build_mode.is_dismantling():
+			build_mode.stop()
+		else:
+			build_mode.start_dismantle()
 	elif Input.is_action_just_pressed("ui_cancel"):
 		_tree_screen.hide()
 		_craft_menu.close()
