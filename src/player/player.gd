@@ -4,9 +4,16 @@ extends CharacterBody2D
 ## Rules: docs/systems/movement-stamina.md, docs/systems/gathering.md.
 ## Values: data/player.json, data/gathering.json.
 
+## Emitted once, when the first hut is built.
+signal step_completed
+
 enum Facing { DOWN, UP, LEFT, RIGHT }
 
 const GROUP := "player"
+const NEED_MATERIALS_HINT := "нужны материалы"
+const COMFORT_COLOR := Color("ffb37a")
+## Built last, it finishes step 1.
+const FINALE_BUILDING := "hut"
 ## sin(22.5°): input closer than this to vertical counts as straight up or down,
 ## anything else, diagonals included, faces left or right.
 const SIDE_FACING_MIN_X := 0.3827
@@ -55,6 +62,9 @@ var _target: ResourceNode
 ## The tool the player works [member _target] with.
 var _tool: ToolStats
 var _highlighted: ResourceNode
+## The blueprint the player builds while holding the work button.
+var _site: Building
+var _step_done := false
 var _hit_flash := 0.0
 var _level_flash := 0.0
 
@@ -188,9 +198,17 @@ func _gather(delta: float) -> void:
 	var nearest := nearest_node(
 		get_tree().get_nodes_in_group(ResourceNode.GROUP), global_position, _interact_radius_px
 	)
-	if Input.is_action_just_pressed("interact") and not is_resting and nearest != null:
-		_start_work(nearest)
+	if Input.is_action_just_pressed("interact") and not is_resting:
+		var site := _nearest_blueprint()
+		var node_distance := INF
+		if nearest != null:
+			node_distance = global_position.distance_to(nearest.global_position)
+		if site != null and site.distance_to(global_position) <= node_distance:
+			_start_site(site)
+		elif nearest != null:
+			_start_work(nearest)
 	var held := Input.is_action_pressed("interact") and not is_resting
+	_build(delta, held)
 	if not held or not _can_keep_working():
 		_work.stop()
 		_target = null
@@ -218,6 +236,58 @@ func _start_work(node: ResourceNode) -> void:
 	_tool = ToolStats.new(tool_id, _tools, _hands_interval)
 	_work.interval = _tool.hit_interval
 	_work.start()
+
+
+## The nearest blueprint in reach, or null.
+func _nearest_blueprint() -> Building:
+	var best: Building = null
+	var best_distance := _interact_radius_px
+	for building: Building in get_tree().get_nodes_in_group(Building.BUILDINGS_GROUP):
+		var distance := building.distance_to(global_position)
+		if building.is_blueprint and distance <= best_distance:
+			best = building
+			best_distance = distance
+	return best
+
+
+## The work button at a blueprint: first every missing material from the
+## inventory goes in. Rules: docs/systems/crafting.md, "Постройки".
+func _start_site(site: Building) -> void:
+	_work.stop()
+	_target = null
+	_site = site
+	var top := site.position - Vector2(0, site.size_px.y + 20)
+	if not site.deliver_from(inventory).is_empty():
+		var percent := roundi(site.delivered_share() * 100.0)
+		FloatingText.spawn(get_parent(), top, "сдано %d%%" % percent)
+	elif not site.has_all_materials():
+		FloatingText.spawn(get_parent(), top, NEED_MATERIALS_HINT, HINT_COLOR)
+
+
+## While the button is held in reach, a blueprint with all materials is assembled.
+func _build(delta: float, held: bool) -> void:
+	if _site == null:
+		return
+	if not held or not is_instance_valid(_site) or not _site.is_blueprint:
+		_site = null
+	elif _site.distance_to(global_position) > _interact_radius_px:
+		_site = null
+	elif _site.assemble(delta):
+		_finish_building(_site)
+		_site = null
+
+
+func _finish_building(site: Building) -> void:
+	var comfort_before := Camp.comfort_at(get_tree(), site.global_position)
+	site.complete()
+	var comfort_gain := Camp.comfort_at(get_tree(), site.global_position) - comfort_before
+	var top := site.position - Vector2(0, site.size_px.y + 20)
+	if comfort_gain > 0:
+		FloatingText.spawn(get_parent(), top, "+%d комфорта" % comfort_gain, COMFORT_COLOR)
+	_gain_xp(crafting.finish_building(site.item_id), top - Vector2(0, 16), " · впервые")
+	if site.item_id == FINALE_BUILDING and not _step_done:
+		_step_done = true
+		step_completed.emit()
 
 
 ## Experience for a result, shown as "+N опыта" over [param at].

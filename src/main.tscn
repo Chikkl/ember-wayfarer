@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://src/ui/xp_bar.gd" id="7_xp"]
 [ext_resource type="Script" path="res://src/ui/tree_screen.gd" id="8_tree"]
 [ext_resource type="Script" path="res://src/ui/craft_menu.gd" id="9_craft"]
+[ext_resource type="Script" path="res://src/camp/build_mode.gd" id="10_build"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
@@ -24,9 +25,13 @@ y_sort_enabled = true
 [node name="Player" parent="World" instance=ExtResource("4_player")]
 position = Vector2(36, 44)
 
-[node name="Hud" type="CanvasLayer" parent="." node_paths=PackedStringArray("player")]
+[node name="BuildMode" type="Node2D" parent="World"]
+script = ExtResource("10_build")
+
+[node name="Hud" type="CanvasLayer" parent="." node_paths=PackedStringArray("player", "build_mode")]
 script = ExtResource("5_hud")
 player = NodePath("../World/Player")
+build_mode = NodePath("../World/BuildMode")
 
 [node name="Comfort" type="Label" parent="Hud"]
 offset_left = 16.0

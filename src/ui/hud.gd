@@ -3,7 +3,12 @@ extends CanvasLayer
 ## Screen bars and hints. The comfort bar is visible from the start:
 ## the starting campfire already gives minimal comfort.
 
+const STEP_DONE_TEXT := "Шаг 1 пройден: первое жилище под крышей"
+## Seconds the step finale line stays before it fades.
+const BANNER_TIME := 5.0
+
 @export var player: Player
+@export var build_mode: BuildMode
 
 @onready var _comfort_label: Label = $Comfort
 @onready var _debug_label: Label = $Debug
@@ -20,6 +25,8 @@ func _ready() -> void:
 	_xp_bar.setup(player.progression)
 	_tree_screen.setup(player.recipe_tree, player.progression, GameData.table("recipes"))
 	_craft_menu.setup(player, GameData.table("items"))
+	_craft_menu.build_requested.connect(_on_build_requested)
+	player.step_completed.connect(_on_step_completed)
 
 
 ## The screens read the same actions as the player, in the physics frame,
@@ -34,6 +41,30 @@ func _physics_process(_delta: float) -> void:
 	elif Input.is_action_just_pressed("ui_cancel"):
 		_tree_screen.hide()
 		_craft_menu.close()
+		build_mode.stop()
+
+
+func _on_build_requested(recipe_id: String) -> void:
+	_craft_menu.close()
+	build_mode.start(recipe_id)
+
+
+## The finale of step 1: a line at the top that fades after a while.
+func _on_step_completed() -> void:
+	var banner := Label.new()
+	banner.text = STEP_DONE_TEXT
+	banner.add_theme_font_size_override("font_size", 22)
+	banner.add_theme_color_override("font_outline_color", Color.BLACK)
+	banner.add_theme_constant_override("outline_size", 5)
+	banner.add_theme_color_override("font_color", Color("ffd25e"))
+	banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	banner.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	banner.offset_top = 70
+	add_child(banner)
+	var tween := banner.create_tween()
+	tween.tween_interval(BANNER_TIME)
+	tween.tween_property(banner, "modulate:a", 0.0, 1.0)
+	tween.tween_callback(banner.queue_free)
 
 
 ## The recipe tree screen, for capture mode clicks.

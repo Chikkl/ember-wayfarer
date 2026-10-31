@@ -1,8 +1,11 @@
 class_name CraftMenu
 extends Control
 ## The crafting menu on the left: starting recipes and recipes of open nodes,
-## "have / need" for every material, a click makes the item.
+## "have / need" for every material, a click makes the item or places a building.
 ## Feedback rules: docs/systems/crafting.md, "Обратная связь игроку".
+
+## Emitted when a building is chosen: build mode places its blueprint.
+signal build_requested(recipe_id: String)
 
 const WIDTH_PX := 430.0
 const ROW_HEIGHT_PX := 54.0
@@ -20,6 +23,7 @@ const MUTED_COLOR := Color(1, 1, 1, 0.55)
 const NEW_COLOR := Color("ffd25e")
 const XP_COLOR := Color("6fb7e8")
 const PROGRESS_COLOR := Color("ffd25e")
+const COMFORT_COLOR := Color("ffb37a")
 
 var crafting: Crafting
 
@@ -85,7 +89,11 @@ func _gui_input(event: InputEvent) -> void:
 	if click == null or not click.pressed or click.button_index != MOUSE_BUTTON_LEFT:
 		return
 	var recipe_id := recipe_at(click.position)
-	if not recipe_id.is_empty():
+	if recipe_id.is_empty():
+		pass
+	elif crafting.is_building(recipe_id):
+		build_requested.emit(recipe_id)
+	else:
 		_player.start_craft(recipe_id)
 	accept_event()
 
@@ -111,7 +119,7 @@ func _draw_row(font: Font, index: int) -> void:
 	var recipe_id := _rows[index]
 	var rect := _row_rect(index)
 	var problem := crafting.problem(recipe_id)
-	var ready := problem == Crafting.Problem.NONE
+	var ready := problem in [Crafting.Problem.NONE, Crafting.Problem.BUILDING]
 	draw_rect(rect, ROW_COLOR)
 	if recipe_id in _items:
 		ItemIcon.draw(
@@ -147,6 +155,8 @@ func _draw_row(font: Font, index: int) -> void:
 	var right := _right_note(recipe_id, problem)
 	var right_width := font.get_string_size(right, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x
 	var right_color := XP_COLOR if ready else MUTED_COLOR
+	if problem == Crafting.Problem.BUILDING:
+		right_color = COMFORT_COLOR
 	_text(
 		font,
 		Vector2(rect.end.x - 6 - right_width, rect.position.y + 18),
@@ -163,13 +173,24 @@ func _draw_row(font: Font, index: int) -> void:
 func _right_note(recipe_id: String, problem: Crafting.Problem) -> String:
 	match problem:
 		Crafting.Problem.BUILDING:
-			return "строить — позже"
+			return _comfort_note(recipe_id)
 		Crafting.Problem.SPACE:
 			return "нет места"
 	var note := "%s с" % str(crafting.time(recipe_id)).replace(".", ",")
 	if crafting.is_first(recipe_id):
 		note += " · +%d опыта" % int(crafting.recipes[recipe_id].xp)
 	return note
+
+
+## What a building adds to the camp: comfort, or nothing if the camp has better.
+func _comfort_note(recipe_id: String) -> String:
+	var camp: Camp = get_tree().get_first_node_in_group(Camp.GROUP)
+	if camp == null or recipe_id not in GameData.table("comfort_items"):
+		return "склад"
+	var gain := camp.comfort_with(recipe_id) - camp.comfort()
+	if gain <= 0:
+		return "+0, уже есть лучше"
+	return "+%d комфорта" % gain
 
 
 func _item_name(item_id: String) -> String:

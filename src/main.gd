@@ -16,9 +16,11 @@ const WORLD_SEED := 7
 @onready var _campfire: Node2D = $World/Campfire
 @onready var _player: Player = $World/Player
 @onready var _hud: Hud = $Hud
+@onready var _build_mode: BuildMode = $World/BuildMode
 
 
 func _ready() -> void:
+	_build_mode.setup(_player, _campfire)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = WORLD_SEED
 	for node_id: String in NODE_COUNTS:

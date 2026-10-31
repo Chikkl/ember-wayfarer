@@ -18,11 +18,22 @@ func contains(point: Vector2) -> bool:
 
 ## Comfort of this camp from the comfort items inside its zone.
 func comfort() -> int:
+	return CampComfort.compute(_item_ids(), GameData.table("comfort_items"))
+
+
+## Comfort of this camp if one more [param item_id] stood inside it.
+func comfort_with(item_id: String) -> int:
+	var ids := _item_ids()
+	ids.append(item_id)
+	return CampComfort.compute(ids, GameData.table("comfort_items"))
+
+
+func _item_ids() -> Array[String]:
 	var ids: Array[String] = []
 	for item: ComfortItem in get_tree().get_nodes_in_group(ComfortItem.GROUP):
 		if contains(item.global_position):
 			ids.append(item.item_id)
-	return CampComfort.compute(ids, GameData.table("comfort_items"))
+	return ids
 
 
 ## Comfort at [param point]: zero outside every camp.
