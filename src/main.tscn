@@ -10,6 +10,7 @@
 [ext_resource type="Script" path="res://src/ui/tree_screen.gd" id="8_tree"]
 [ext_resource type="Script" path="res://src/ui/craft_menu.gd" id="9_craft"]
 [ext_resource type="Script" path="res://src/camp/build_mode.gd" id="10_build"]
+[ext_resource type="Script" path="res://src/ui/comfort_badge.gd" id="11_comfort"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
@@ -33,12 +34,8 @@ script = ExtResource("5_hud")
 player = NodePath("../World/Player")
 build_mode = NodePath("../World/BuildMode")
 
-[node name="Comfort" type="Label" parent="Hud"]
-offset_left = 16.0
-offset_top = 12.0
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 4
-theme_override_font_sizes/font_size = 20
+[node name="Comfort" type="Control" parent="Hud"]
+script = ExtResource("11_comfort")
 
 [node name="Debug" type="Label" parent="Hud"]
 offset_left = 16.0

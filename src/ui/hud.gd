@@ -1,6 +1,6 @@
 class_name Hud
 extends CanvasLayer
-## Screen bars and hints. The comfort bar is visible from the start:
+## Screen bars and hints. The comfort badge is visible from the start:
 ## the starting campfire already gives minimal comfort.
 
 const STEP_DONE_TEXT := "Шаг 1 пройден: первое жилище под крышей"
@@ -10,7 +10,7 @@ const BANNER_TIME := 5.0
 @export var player: Player
 @export var build_mode: BuildMode
 
-@onready var _comfort_label: Label = $Comfort
+@onready var _comfort_badge: ComfortBadge = $Comfort
 @onready var _debug_label: Label = $Debug
 @onready var _hint_label: Label = $Hint
 @onready var _inventory_bar: InventoryBar = $Inventory
@@ -23,6 +23,7 @@ func _ready() -> void:
 	_inventory_bar.setup(player.inventory)
 	_inventory_bar.drop_requested.connect(player.drop_from_slot)
 	_xp_bar.setup(player.progression)
+	_comfort_badge.setup(player)
 	_tree_screen.setup(player.recipe_tree, player.progression, GameData.table("recipes"))
 	_craft_menu.setup(player, GameData.table("items"))
 	_craft_menu.build_requested.connect(_on_build_requested)
@@ -77,16 +78,19 @@ func craft_menu() -> CraftMenu:
 	return _craft_menu
 
 
-## Capture mode keeps only the inventory and experience bars: the text lines
-## are placeholders and debug values.
+## The comfort badge, for a capture mode hover.
+func comfort_badge() -> ComfortBadge:
+	return _comfort_badge
+
+
+## Capture mode keeps the bars and the comfort badge: the text lines are debug
+## values and the controls hint.
 func hide_text() -> void:
-	_comfort_label.hide()
 	_debug_label.hide()
 	_hint_label.hide()
 
 
 func _process(_delta: float) -> void:
-	_comfort_label.text = "Комфорт: %d" % player.current_comfort()
 	var stamina := player.stamina
 	_debug_label.text = (
 		"Выносливость %.0f / %.0f · усталость %.1f%s%s"

@@ -38,6 +38,12 @@ func test_hut_replaces_the_lean_to() -> void:
 	assert_eq(CampComfort.compute(ids, ITEMS), 4, "The best shelter counts")
 
 
+func test_best_item_of_each_group() -> void:
+	var ids: Array[String] = ["lean_to", "campfire", "hut", "log_seat", "log_seat"]
+	var best := CampComfort.best_by_group(ids, ITEMS)
+	assert_eq(best, {"shelter": "hut", "fire": "campfire", "seat": "log_seat"})
+
+
 func test_unknown_item_is_ignored() -> void:
 	var ids: Array[String] = ["campfire", "golden_throne"]
 	assert_eq(CampComfort.compute(ids, ITEMS), 2)

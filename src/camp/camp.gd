@@ -21,6 +21,11 @@ func comfort() -> int:
 	return CampComfort.compute(_item_ids(), GameData.table("comfort_items"))
 
 
+## The best comfort item of each group inside the camp, {group: item_id}.
+func best_by_group() -> Dictionary:
+	return CampComfort.best_by_group(_item_ids(), GameData.table("comfort_items"))
+
+
 ## Comfort of this camp if one more [param item_id] stood inside it.
 func comfort_with(item_id: String) -> int:
 	var ids := _item_ids()
