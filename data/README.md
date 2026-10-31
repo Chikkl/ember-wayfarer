@@ -13,7 +13,8 @@
 | `items.csv` | Предметы: вес, стопка, опыт | [gathering.md](../docs/systems/gathering.md) |
 | `resource_nodes.csv` | Объекты в мире; добыча в виде `id:количество` через `;`, `drop_mode`: `per_hit` или `on_last_hit`, пустой `respawn`: объект не восстанавливается. `tool`: основной инструмент, в его ударах считается `hits`; `alt_tools`: другие инструменты через `;` | [gathering.md](../docs/systems/gathering.md) |
 | `tools.csv` | Инструменты сбора: сила удара, ритм, множитель выносливости за удар | [gathering.md](../docs/systems/gathering.md) |
-| `crafting.json` | Разбор построек | [crafting.md](../docs/systems/crafting.md) |
+| `crafting.json` | Разбор построек и радиус, в котором ставится чертёж | [crafting.md](../docs/systems/crafting.md) |
+| `buildings.csv` | Размеры построек в клетках: ширина и высота | [crafting.md](../docs/systems/crafting.md) |
 | `recipes.csv` | Рецепты; материалы в виде `id:количество` через `;`, `tools`: инструменты, которые нужны, но не тратятся, `kind`: `item` или `building`, `start`: `1` у стартовых рецептов, доступных без узла | [crafting.md](../docs/systems/crafting.md) |
 
 ## Правила

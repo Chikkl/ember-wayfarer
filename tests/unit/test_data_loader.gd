@@ -24,7 +24,7 @@ func test_parse_amounts_skips_broken_parts() -> void:
 
 func test_comfort_items_csv() -> void:
 	var rows := DataLoader.load_csv("res://data/comfort_items.csv")
-	assert_eq(rows.size(), 4)
+	assert_eq(rows.size(), 5)
 	var items := DataLoader.index_by(rows, "id")
 	assert_eq(items.campfire.name, "Костёр", "UTF-8 names survive")
 	assert_eq(items.campfire.comfort, 2)
