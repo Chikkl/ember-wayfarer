@@ -254,4 +254,32 @@ const ALL := {
 			{"do": "wait", "time": 4.0},
 		],
 	},
+	# Playtest note 14, a basket on a stick: aims the basket at the stick nearest
+	# to the start, then two tiles below it, builds it and holds E at the stick.
+	# Before the fix the basket stands on the stick and E opens it; after it the
+	# first preview is red and E picks the stick up.
+	"basket-on-stick":
+	{
+		"xp": 30,
+		"items": {"stick": 6, "plait": 2, "leaves": 6},
+		"steps":
+		[
+			{"do": "press", "action": "tree"},
+			{"do": "wait", "time": 2.0},
+			{"do": "click_tree_node", "node": "weaving"},
+			{"do": "wait", "time": 1.5},
+			{"do": "press", "action": "tree"},
+			{"do": "press", "action": "craft"},
+			{"do": "wait", "time": 2.0},
+			{"do": "click_recipe", "recipe": "basket"},
+			{"do": "place", "on": "ground_stick", "time": 2.0},
+			{"do": "place", "on": "ground_stick", "shift": [0, 2]},
+			{"do": "walk_to", "target": "blueprint"},
+			{"do": "build"},
+			{"do": "wait", "time": 1.0},
+			{"do": "walk_to", "target": "ground_stick"},
+			{"do": "work", "time": 2.5},
+			{"do": "wait", "time": 2.0},
+		],
+	},
 }
