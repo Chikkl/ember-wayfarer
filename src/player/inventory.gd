@@ -6,6 +6,7 @@ extends RefCounted
 ## One slot per entry: {"item_id": String, "count": int}, an empty slot is an empty Dictionary.
 var slots: Array[Dictionary] = []
 
+var _params: Dictionary
 var _items: Dictionary
 var _carry_limit: float
 var _carry_cap: float
@@ -13,6 +14,7 @@ var _speed_min: float
 
 
 func _init(params: Dictionary, items: Dictionary) -> void:
+	_params = params
 	_items = items
 	_carry_limit = float(params.carry_limit)
 	_carry_cap = _carry_limit * float(params.overload_cap)
@@ -92,6 +94,24 @@ func add(item_id: String, amount := 1) -> int:
 			slots[i] = {"item_id": item_id, "count": moved}
 			left -= moved
 	return amount - left
+
+
+## Removes up to [param amount] of [param item_id], the last stacks first.
+## Returns how many were removed.
+func remove(item_id: String, amount: int) -> int:
+	var left := amount
+	for i in range(slots.size() - 1, -1, -1):
+		if left > 0 and slots[i].get("item_id") == item_id:
+			left -= take(i, left).count
+	return amount - left
+
+
+## A copy with its own slots, to try a change before making it.
+func copy() -> Inventory:
+	var other := Inventory.new(_params, _items)
+	for i in slots.size():
+		other.slots[i] = slots[i].duplicate()
+	return other
 
 
 ## Takes up to [param amount] items out of slot [param index].

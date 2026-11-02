@@ -80,3 +80,19 @@ func test_take_from_a_slot() -> void:
 	assert_eq(inventory.take(0, 5), {"item_id": "stick", "count": 2})
 	assert_eq(inventory.slots[0], {})
 	assert_eq(inventory.take(0, 1), {})
+
+
+func test_remove_takes_from_the_last_stacks_first() -> void:
+	inventory.add("log", 25)
+	assert_eq(inventory.remove("log", 7), 7)
+	assert_eq(inventory.slots[0], {"item_id": "log", "count": 18})
+	assert_eq(inventory.slots[1], {}, "The last stack of 5 went first")
+	assert_eq(inventory.remove("log", 30), 18, "Only what is there")
+
+
+func test_copy_has_its_own_slots() -> void:
+	inventory.add("stone", 2)
+	var copy := inventory.copy()
+	copy.remove("stone", 2)
+	assert_eq(inventory.count("stone"), 2)
+	assert_eq(copy.count("stone"), 0)
