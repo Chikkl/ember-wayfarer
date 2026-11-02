@@ -93,6 +93,25 @@ func test_drop_the_whole_stack() -> void:
 	assert_eq(_piles()[0].count, 3)
 
 
+func test_dropped_pile_lands_in_front_of_the_player() -> void:
+	player.inventory.add("stone", 2)
+	await wait_physics_frames(2)
+	player.drop_from_slot(0, true)
+	assert_eq(_piles()[0].land_at, Vector2(0, 0.8 * Units.TILE_PX), "Facing down, nothing there")
+
+
+func test_dropped_pile_lands_in_front_of_a_building_base() -> void:
+	# The basket base spans y from -41 to -15; the throw would land at y -25.6.
+	world.add_child(Building.blueprint("basket", Vector2(0, -12)))
+	player.facing = Player.Facing.UP
+	player.inventory.add("stone", 2)
+	await wait_physics_frames(2)
+	player.drop_from_slot(0, true)
+	var land_at := _piles()[0].land_at
+	assert_almost_eq(land_at.y, -15.0 + Player.LANDING_GAP_PX, 0.01, "In front of the base")
+	assert_eq(land_at.x, 0.0)
+
+
 func test_dropped_pile_waits_until_the_player_walks_away() -> void:
 	player.inventory.add("stone", 2)
 	player.drop_from_slot(0, true)

@@ -34,6 +34,23 @@ func test_footprint_stands_on_its_bottom_center() -> void:
 	assert_eq(bedroll.distance_to(Vector2(100, 210)), 10.0, "Below the bottom edge")
 
 
+func _solid_at(point: Vector2) -> bool:
+	var query := PhysicsPointQueryParameters2D.new()
+	query.position = point
+	return not world.get_world_2d().direct_space_state.intersect_point(query, 1).is_empty()
+
+
+func test_only_the_base_stops_the_player_and_a_seat_has_none() -> void:
+	_blueprint("log_seat").complete()
+	_blueprint("basket", Vector2(100, 0)).complete()
+	_blueprint("hut", Vector2(300, 0))
+	await wait_physics_frames(2)
+	assert_false(_solid_at(Vector2(0, -16)), "The seat lets the player through")
+	assert_true(_solid_at(Vector2(100, -16)), "The basket is solid")
+	assert_true(_solid_at(Vector2(300, -16)), "The hut base, a blueprint too")
+	assert_false(_solid_at(Vector2(300, -80)), "Behind the hut, above its base")
+
+
 func test_materials_go_in_and_the_share_counts_by_weight() -> void:
 	var bedroll := _blueprint("bedroll")
 	inventory.add("stick", 6)
@@ -99,6 +116,43 @@ func test_blueprint_needs_free_ground_near_the_player() -> void:
 	assert_false(mode.can_place(Rect2(64, 0, 32, 32)), "The tree base is there")
 	assert_false(mode.can_place(Rect2(-16, -16, 32, 32)), "The player stands there")
 	assert_false(mode.can_place(Rect2(320, 0, 32, 32)), "Farther than 4 tiles")
+
+
+func test_blueprint_keeps_off_sticks_stones_and_piles() -> void:
+	var player: Player = PLAYER_SCENE.instantiate()
+	world.add_child(player)
+	var fire := Node2D.new()
+	world.add_child(fire)
+	var stick: ResourceNode = NODE_SCENE.instantiate()
+	stick.node_id = "ground_stick"
+	stick.position = Vector2(-48, 48)
+	world.add_child(stick)
+	var pile := GroundItem.new()
+	pile.item_id = "stone"
+	pile.position = Vector2(48, 48)
+	pile.land_at = pile.position
+	world.add_child(pile)
+	var mode := BuildMode.new()
+	world.add_child(mode)
+	mode.setup(player, fire)
+	await wait_physics_frames(2)
+	assert_false(mode.can_place(Rect2(-64, 32, 32, 32)), "A stick lies there")
+	assert_true(mode.can_place(Rect2(-64, 64, 32, 32)), "Next to the stick")
+	assert_false(mode.can_place(Rect2(32, 32, 32, 32)), "A pile lies there")
+
+
+func test_a_seat_takes_its_tile_though_the_player_walks_through() -> void:
+	var player: Player = PLAYER_SCENE.instantiate()
+	world.add_child(player)
+	var fire := Node2D.new()
+	world.add_child(fire)
+	_blueprint("log_seat", Vector2(-48, 64)).complete()
+	var mode := BuildMode.new()
+	world.add_child(mode)
+	mode.setup(player, fire)
+	await wait_physics_frames(2)
+	assert_false(mode.can_place(Rect2(-64, 32, 32, 32)), "The seat stands there")
+	assert_true(mode.can_place(Rect2(-32, 32, 32, 32)), "Right next to the seat")
 
 
 func test_holding_e_delivers_and_builds() -> void:

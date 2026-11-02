@@ -254,4 +254,133 @@ const ALL := {
 			{"do": "wait", "time": 4.0},
 		],
 	},
+	# Playtest note 14, a basket on a stick: aims the basket at the stick nearest
+	# to the start, then two tiles below it, builds it and holds E at the stick.
+	# Before the fix the basket stands on the stick and E opens it; after it the
+	# first preview is red and E picks the stick up.
+	"basket-on-stick":
+	{
+		"xp": 30,
+		"items": {"stick": 6, "plait": 2, "leaves": 6},
+		"steps":
+		[
+			{"do": "press", "action": "tree"},
+			{"do": "wait", "time": 2.0},
+			{"do": "click_tree_node", "node": "weaving"},
+			{"do": "wait", "time": 1.5},
+			{"do": "press", "action": "tree"},
+			{"do": "press", "action": "craft"},
+			{"do": "wait", "time": 2.0},
+			{"do": "click_recipe", "recipe": "basket"},
+			{"do": "place", "on": "ground_stick", "time": 2.0},
+			{"do": "place", "on": "ground_stick", "shift": [0, 2]},
+			{"do": "walk_to", "target": "blueprint"},
+			{"do": "build"},
+			{"do": "wait", "time": 1.0},
+			{"do": "walk_to", "target": "ground_stick"},
+			{"do": "work", "time": 2.5},
+			{"do": "wait", "time": 2.0},
+		],
+	},
+	# Playtest note 9, seats corner to corner: builds two seats and walks through
+	# the gap between their corners and back. Before the fix a seat blocks its
+	# whole tile and the player goes around; after it the player walks through.
+	"seats-diagonal":
+	{
+		"xp": 81,
+		"items": {"log": 2},
+		"steps":
+		[
+			{"do": "press", "action": "tree"},
+			{"do": "wait", "time": 2.0},
+			{"do": "click_tree_node", "node": "stonework"},
+			{"do": "wait", "time": 0.7},
+			{"do": "click_tree_node", "node": "carpentry"},
+			{"do": "wait", "time": 1.5},
+			{"do": "press", "action": "tree"},
+			{"do": "press", "action": "craft"},
+			{"do": "wait", "time": 2.0},
+			{"do": "click_recipe", "recipe": "log_seat"},
+			{"do": "place", "at": [2, 2]},
+			{"do": "walk_to", "target": "blueprint"},
+			{"do": "build"},
+			{"do": "press", "action": "craft"},
+			{"do": "wait", "time": 2.0},
+			{"do": "click_recipe", "recipe": "log_seat"},
+			{"do": "place", "at": [3, 3]},
+			{"do": "walk_to", "target": "blueprint"},
+			{"do": "build"},
+			{"do": "walk_to", "at": [2.5, 3.6]},
+			{"do": "wait", "time": 1.0},
+			{"do": "walk_to", "at": [3.5, 2.4]},
+			{"do": "wait", "time": 1.0},
+			{"do": "walk_to", "at": [2.5, 3.6]},
+			{"do": "wait", "time": 1.5},
+		],
+	},
+	# Playtest note 13, a throw into a building: walks up to a basket from below,
+	# drags the stones out onto the ground, steps away and comes back. Before the
+	# fix the pile falls into the basket, out of sight, and is pulled out of it;
+	# after it the pile lies in front of the basket.
+	"drop-at-basket":
+	{
+		"xp": 30,
+		"items": {"stick": 6, "plait": 2, "leaves": 6, "stone": 3},
+		"steps":
+		[
+			{"do": "press", "action": "tree"},
+			{"do": "wait", "time": 2.0},
+			{"do": "click_tree_node", "node": "weaving"},
+			{"do": "wait", "time": 1.5},
+			{"do": "press", "action": "tree"},
+			{"do": "press", "action": "craft"},
+			{"do": "wait", "time": 2.0},
+			{"do": "click_recipe", "recipe": "basket"},
+			{"do": "place", "at": [2, 1]},
+			{"do": "walk_to", "target": "blueprint"},
+			{"do": "build"},
+			{"do": "walk_to", "at": [2.5, 3.5]},
+			{"do": "walk_to", "at": [2.5, 2.25]},
+			{"do": "wait", "time": 1.0},
+			{"do": "drag", "from": "inventory", "index": 3, "to": "ground"},
+			{"do": "wait", "time": 1.0},
+			{"do": "walk_to", "at": [2.5, 4.5]},
+			{"do": "wait", "time": 2.0},
+			{"do": "walk_to", "at": [2.5, 2.5]},
+			{"do": "wait", "time": 2.0},
+		],
+	},
+	# Playtest note 11, the building notes in the craft menu: opens every node,
+	# builds a log seat and opens the menu. Before the fix the seat says "+0,
+	# already have better"; after it every building shows its comfort and group.
+	"craft-comfort-notes":
+	{
+		"xp": 566,
+		"items": {"log": 1},
+		"steps":
+		[
+			{"do": "press", "action": "tree"},
+			{"do": "wait", "time": 2.0},
+			{"do": "click_tree_node", "node": "stonework"},
+			{"do": "wait", "time": 0.7},
+			{"do": "click_tree_node", "node": "weaving"},
+			{"do": "wait", "time": 0.7},
+			{"do": "click_tree_node", "node": "carpentry"},
+			{"do": "wait", "time": 0.7},
+			{"do": "click_tree_node", "node": "shelter"},
+			{"do": "wait", "time": 0.7},
+			{"do": "click_tree_node", "node": "hut"},
+			{"do": "wait", "time": 1.5},
+			{"do": "press", "action": "tree"},
+			{"do": "press", "action": "craft"},
+			{"do": "wait", "time": 2.0},
+			{"do": "click_recipe", "recipe": "log_seat"},
+			{"do": "place", "at": [2, 1]},
+			{"do": "walk_to", "target": "blueprint"},
+			{"do": "build"},
+			{"do": "wait", "time": 1.0},
+			{"do": "press", "action": "craft"},
+			{"do": "wait", "time": 4.0},
+		],
+	},
 }

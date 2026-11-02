@@ -173,7 +173,7 @@ func _draw_row(font: Font, index: int) -> void:
 func _right_note(recipe_id: String, problem: Crafting.Problem) -> String:
 	match problem:
 		Crafting.Problem.BUILDING:
-			return _comfort_note(recipe_id)
+			return building_note(recipe_id)
 		Crafting.Problem.SPACE:
 			return "нет места"
 	var note := "%s с" % str(crafting.time(recipe_id)).replace(".", ",")
@@ -182,15 +182,15 @@ func _right_note(recipe_id: String, problem: Crafting.Problem) -> String:
 	return note
 
 
-## What a building adds to the camp: comfort, or nothing if the camp has better.
-func _comfort_note(recipe_id: String) -> String:
-	var camp: Camp = get_tree().get_first_node_in_group(Camp.GROUP)
-	if camp == null or recipe_id not in GameData.table("comfort_items"):
+## What a building gives by itself, its comfort and group, or storage for the
+## basket. No comparison with the camp: docs/systems/comfort.md, "Обратная связь".
+static func building_note(recipe_id: String) -> String:
+	var comfort_items := GameData.table("comfort_items")
+	if recipe_id not in comfort_items:
 		return "склад"
-	var gain := camp.comfort_with(recipe_id) - camp.comfort()
-	if gain <= 0:
-		return "+0, уже есть лучше"
-	return "+%d комфорта" % gain
+	var item: Dictionary = comfort_items[recipe_id]
+	var group: String = ComfortBadge.GROUP_NAMES[item.group]
+	return "комфорт %d · %s" % [int(item.comfort), group.to_lower()]
 
 
 func _item_name(item_id: String) -> String:

@@ -148,9 +148,13 @@ func _is_free(point: Vector2) -> bool:
 	var player_clearance := PLAYER_CLEARANCE_TILES * Units.TILE_PX
 	if player != null and player.global_position.distance_to(point) < player_clearance:
 		return false
-	for item: ComfortItem in get_tree().get_nodes_in_group(ComfortItem.GROUP):
-		if item.global_position.distance_to(point) < CAMP_ITEM_CLEARANCE_TILES * Units.TILE_PX:
-			return false
+	var clearance := CAMP_ITEM_CLEARANCE_TILES * Units.TILE_PX
+	# Buildings and blueprints count from their edge, so nothing grows under them.
+	# Typed as ComfortItem: a Building type here leaks scripts at exit.
+	for group: String in [ComfortItem.GROUP, Building.BUILDINGS_GROUP]:
+		for item: ComfortItem in get_tree().get_nodes_in_group(group):
+			if item.distance_to(point) < clearance:
+				return false
 	return true
 
 

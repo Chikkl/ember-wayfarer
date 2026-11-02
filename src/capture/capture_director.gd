@@ -153,8 +153,8 @@ static func take_problems(take: Dictionary) -> Array[String]:
 			problems.append("unknown step %s" % step)
 		elif kind == "walk_to" and not step.has("at") and not _known_target(target, nodes):
 			problems.append("unknown target in %s" % step)
-		elif kind == "place" and not step.has("at"):
-			problems.append("no 'at' in %s" % step)
+		elif kind == "place" and not step.has("at") and step.get("on", "") not in nodes:
+			problems.append("no 'at' and no known 'on' in %s" % step)
 		elif kind == "drag" and not _known_drag(step):
 			problems.append("unknown grid in %s" % step)
 		elif kind == "shift_click" and step.get("grid", "") not in GRIDS:
@@ -251,8 +251,12 @@ func _begin_next_step() -> void:
 		"click_recipe":
 			_click(_hud.craft_menu().recipe_center(_step.recipe), true)
 		"place":
-			_placed = false
-			_move_mouse(_tile_center(_step.at, _hud.build_mode.recipe_id))
+			# Without a building to place the step only warns and ends.
+			_placed = _hud.build_mode.recipe_id.is_empty()
+			if _placed:
+				push_warning("capture: nothing to place in %s" % _step)
+			else:
+				_move_mouse(_place_point())
 		"build":
 			_site = _nearest_blueprint()
 			Input.action_press("interact")
@@ -372,7 +376,9 @@ func _begin_work() -> void:
 
 
 func _run_work(delta: float) -> bool:
-	if _until_exhausted() and _player.stamina.is_exhausted():
+	# "time" caps how long E is held, for nodes the player cannot work.
+	var out_of_time: bool = _step.has("time") and _step_time >= float(_step.time)
+	if out_of_time or (_until_exhausted() and _player.stamina.is_exhausted()):
 		return true
 	if _walking:
 		if _walk_toward(_work_spot, ARRIVE_PX, delta):
@@ -546,6 +552,19 @@ func _tile_center(tile: Array, recipe_id: String) -> Vector2:
 	var size: Dictionary = GameData.table("buildings")[recipe_id]
 	var center := _tiles(tile) + Vector2(int(size.width), int(size.height)) / 2.0
 	var world := _campfire.global_position + center * Units.TILE_PX
+	return get_viewport().get_canvas_transform() * world
+
+
+## Where the place step aims the preview, on the screen: tile "at" from the fire,
+## or the nearest "on" node moved by "shift" tiles.
+func _place_point() -> Vector2:
+	if _step.has("at"):
+		return _tile_center(_step.at, _hud.build_mode.recipe_id)
+	var node := _nearest_node([_step.on])
+	if node == null:
+		push_warning("capture: no %s to place on" % _step.on)
+		return _mouse_screen
+	var world := node.global_position + _tiles(_step.get("shift", [0, 0])) * Units.TILE_PX
 	return get_viewport().get_canvas_transform() * world
 
 

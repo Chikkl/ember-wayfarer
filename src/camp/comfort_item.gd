@@ -10,3 +10,8 @@ const GROUP := "comfort_items"
 
 func _ready() -> void:
 	add_to_group(GROUP)
+
+
+## Distance from [param point] to the item. A building counts from its edge.
+func distance_to(point: Vector2) -> float:
+	return global_position.distance_to(point)
