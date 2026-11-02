@@ -12,6 +12,8 @@ const BLUEPRINT_ALPHA := 0.35
 const OUTLINE_COLOR := Color(1, 1, 1, 0.7)
 const FILL_COLOR := Color(1, 1, 1, 0.1)
 const RING_RADIUS := 8.0
+## The base keeps this far inside its tiles, close to the drawn shape.
+const BASE_INSET_PX := 3.0
 const RING_BACK := Color(0.1, 0.1, 0.1, 0.55)
 const DELIVERY_COLOR := Color("8fd14f")
 const ASSEMBLY_COLOR := Color("ffd25e")
@@ -61,12 +63,21 @@ func _ready() -> void:
 	size_px = Vector2(int(size.width), int(size.height)) * Units.TILE_PX
 	_interact_radius_px = float(GameData.params("gathering").interact_radius) * Units.TILE_PX
 	_player = get_tree().get_first_node_in_group(Player.GROUP)
-	var body := StaticBody2D.new()
-	var shape := CollisionShape2D.new()
+	_add_base(float(size.base) * Units.TILE_PX)
+
+
+## Only the base stops the player: a strip [param base_px] high at the bottom of
+## the tiles, a blueprint's too. Above it the player walks behind the building,
+## and with no base walks through it. Rules: docs/systems/crafting.md, "Постройки".
+func _add_base(base_px: float) -> void:
+	if base_px <= 0.0:
+		return
 	var rect := RectangleShape2D.new()
-	rect.size = size_px
+	rect.size = Vector2(size_px.x, base_px) - Vector2.ONE * 2.0 * BASE_INSET_PX
+	var shape := CollisionShape2D.new()
 	shape.shape = rect
-	shape.position = Vector2(0, -size_px.y / 2.0)
+	shape.position = Vector2(0, -base_px / 2.0)
+	var body := StaticBody2D.new()
 	body.add_child(shape)
 	add_child(body)
 

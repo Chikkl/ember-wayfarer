@@ -71,7 +71,7 @@ func preview_rect() -> Rect2:
 func can_place(rect: Rect2) -> bool:
 	if rect.get_center().distance_to(_player.global_position) > _build_radius_px:
 		return false
-	if _covers_ground_things(rect):
+	if _covers_ground_things(rect) or _overlaps_building(rect):
 		return false
 	var shape := RectangleShape2D.new()
 	shape.size = rect.size - Vector2(2, 2)
@@ -89,6 +89,15 @@ func _covers_ground_things(rect: Rect2) -> bool:
 			return true
 	for item: GroundItem in get_tree().get_nodes_in_group(GroundItem.GROUP):
 		if rect.has_point(item.global_position):
+			return true
+	return false
+
+
+## A building takes all its tiles, though only its base has a body and a seat
+## has none.
+func _overlaps_building(rect: Rect2) -> bool:
+	for building: Building in get_tree().get_nodes_in_group(Building.BUILDINGS_GROUP):
+		if building.footprint().intersects(rect):
 			return true
 	return false
 

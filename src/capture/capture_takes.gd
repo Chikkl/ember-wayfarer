@@ -282,4 +282,40 @@ const ALL := {
 			{"do": "wait", "time": 2.0},
 		],
 	},
+	# Playtest note 9, seats corner to corner: builds two seats and walks through
+	# the gap between their corners and back. Before the fix a seat blocks its
+	# whole tile and the player goes around; after it the player walks through.
+	"seats-diagonal":
+	{
+		"xp": 81,
+		"items": {"log": 2},
+		"steps":
+		[
+			{"do": "press", "action": "tree"},
+			{"do": "wait", "time": 2.0},
+			{"do": "click_tree_node", "node": "stonework"},
+			{"do": "wait", "time": 0.7},
+			{"do": "click_tree_node", "node": "carpentry"},
+			{"do": "wait", "time": 1.5},
+			{"do": "press", "action": "tree"},
+			{"do": "press", "action": "craft"},
+			{"do": "wait", "time": 2.0},
+			{"do": "click_recipe", "recipe": "log_seat"},
+			{"do": "place", "at": [2, 2]},
+			{"do": "walk_to", "target": "blueprint"},
+			{"do": "build"},
+			{"do": "press", "action": "craft"},
+			{"do": "wait", "time": 2.0},
+			{"do": "click_recipe", "recipe": "log_seat"},
+			{"do": "place", "at": [3, 3]},
+			{"do": "walk_to", "target": "blueprint"},
+			{"do": "build"},
+			{"do": "walk_to", "at": [2.5, 3.6]},
+			{"do": "wait", "time": 1.0},
+			{"do": "walk_to", "at": [3.5, 2.4]},
+			{"do": "wait", "time": 1.0},
+			{"do": "walk_to", "at": [2.5, 3.6]},
+			{"do": "wait", "time": 1.5},
+		],
+	},
 }
