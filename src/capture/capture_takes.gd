@@ -350,4 +350,37 @@ const ALL := {
 			{"do": "wait", "time": 2.0},
 		],
 	},
+	# Playtest note 11, the building notes in the craft menu: opens every node,
+	# builds a log seat and opens the menu. Before the fix the seat says "+0,
+	# already have better"; after it every building shows its comfort and group.
+	"craft-comfort-notes":
+	{
+		"xp": 566,
+		"items": {"log": 1},
+		"steps":
+		[
+			{"do": "press", "action": "tree"},
+			{"do": "wait", "time": 2.0},
+			{"do": "click_tree_node", "node": "stonework"},
+			{"do": "wait", "time": 0.7},
+			{"do": "click_tree_node", "node": "weaving"},
+			{"do": "wait", "time": 0.7},
+			{"do": "click_tree_node", "node": "carpentry"},
+			{"do": "wait", "time": 0.7},
+			{"do": "click_tree_node", "node": "shelter"},
+			{"do": "wait", "time": 0.7},
+			{"do": "click_tree_node", "node": "hut"},
+			{"do": "wait", "time": 1.5},
+			{"do": "press", "action": "tree"},
+			{"do": "press", "action": "craft"},
+			{"do": "wait", "time": 2.0},
+			{"do": "click_recipe", "recipe": "log_seat"},
+			{"do": "place", "at": [2, 1]},
+			{"do": "walk_to", "target": "blueprint"},
+			{"do": "build"},
+			{"do": "wait", "time": 1.0},
+			{"do": "press", "action": "craft"},
+			{"do": "wait", "time": 4.0},
+		],
+	},
 }
