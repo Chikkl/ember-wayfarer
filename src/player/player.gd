@@ -44,6 +44,8 @@ const CRAFT_RING_BACK := Color(0.1, 0.1, 0.1, 0.55)
 const CRAFT_RING_COLOR := Color("ffd25e")
 ## A dropped pile lands this many tiles in front of the player.
 const DROP_DISTANCE_TILES := 0.8
+## A pile thrown at something solid lies this far in front of it.
+const LANDING_GAP_PX := 6.0
 
 var stamina: Stamina
 var inventory: Inventory
@@ -164,9 +166,22 @@ func drop_from(slots_of: Inventory, index: int, whole_stack: bool) -> void:
 	item.item_id = taken.item_id
 	item.count = taken.count
 	item.position = position
-	item.land_at = position + _facing_vector() * DROP_DISTANCE_TILES * Units.TILE_PX
+	item.land_at = _landing_spot(position + _facing_vector() * DROP_DISTANCE_TILES * Units.TILE_PX)
 	item.wait_for_player_to_leave = true
 	get_parent().add_child(item)
+
+
+## Where a throw toward [param spot] lands: in front of the first body on the
+## way, a building's base, a trunk or the fire, so a pile lies only where the
+## player can stand. Spots are in the parent's coordinates, as [member position].
+func _landing_spot(spot: Vector2) -> Vector2:
+	var parent := get_parent() as Node2D
+	var query := PhysicsRayQueryParameters2D.create(global_position, parent.to_global(spot))
+	query.exclude = [get_rid()]
+	var hit := get_world_2d().direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		return spot
+	return parent.to_local(hit.position + hit.normal * LANDING_GAP_PX)
 
 
 ## The workable node nearest to [param origin] within [param radius], or null.

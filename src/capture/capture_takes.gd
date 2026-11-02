@@ -318,4 +318,36 @@ const ALL := {
 			{"do": "wait", "time": 1.5},
 		],
 	},
+	# Playtest note 13, a throw into a building: walks up to a basket from below,
+	# drags the stones out onto the ground, steps away and comes back. Before the
+	# fix the pile falls into the basket, out of sight, and is pulled out of it;
+	# after it the pile lies in front of the basket.
+	"drop-at-basket":
+	{
+		"xp": 30,
+		"items": {"stick": 6, "plait": 2, "leaves": 6, "stone": 3},
+		"steps":
+		[
+			{"do": "press", "action": "tree"},
+			{"do": "wait", "time": 2.0},
+			{"do": "click_tree_node", "node": "weaving"},
+			{"do": "wait", "time": 1.5},
+			{"do": "press", "action": "tree"},
+			{"do": "press", "action": "craft"},
+			{"do": "wait", "time": 2.0},
+			{"do": "click_recipe", "recipe": "basket"},
+			{"do": "place", "at": [2, 1]},
+			{"do": "walk_to", "target": "blueprint"},
+			{"do": "build"},
+			{"do": "walk_to", "at": [2.5, 3.5]},
+			{"do": "walk_to", "at": [2.5, 2.25]},
+			{"do": "wait", "time": 1.0},
+			{"do": "drag", "from": "inventory", "index": 3, "to": "ground"},
+			{"do": "wait", "time": 1.0},
+			{"do": "walk_to", "at": [2.5, 4.5]},
+			{"do": "wait", "time": 2.0},
+			{"do": "walk_to", "at": [2.5, 2.5]},
+			{"do": "wait", "time": 2.0},
+		],
+	},
 }
