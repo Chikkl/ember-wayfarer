@@ -123,7 +123,16 @@ func update(delta: float) -> Dictionary:
 	for item_id: String in needed:
 		_inventory.remove(item_id, needed[item_id])
 	_inventory.add(recipe_id)
-	var xp := int(recipes[recipe_id].xp) if is_first(recipe_id) else 0
-	if is_first(recipe_id):
-		_crafted.append(recipe_id)
-	return {"item_id": recipe_id, "xp": xp}
+	return {"item_id": recipe_id, "xp": _record(recipe_id)}
+
+
+## Records a finished building. Returns its experience, 0 after the first time.
+func finish_building(recipe_id: String) -> int:
+	return _record(recipe_id)
+
+
+func _record(recipe_id: String) -> int:
+	if not is_first(recipe_id):
+		return 0
+	_crafted.append(recipe_id)
+	return int(recipes[recipe_id].xp)

@@ -3,3 +3,4 @@ campfire,Костёр,fire,2,true
 log_seat,Бревно-сиденье,seat,1,false
 bedroll,Лежанка из листьев,sleep,2,false
 lean_to,Навес,shelter,2,false
+hut,Шалаш,shelter,4,false

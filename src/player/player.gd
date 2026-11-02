@@ -4,9 +4,20 @@ extends CharacterBody2D
 ## Rules: docs/systems/movement-stamina.md, docs/systems/gathering.md.
 ## Values: data/player.json, data/gathering.json.
 
+## Emitted once, when the first hut is built.
+signal step_completed
+## The work button opened a basket; it closes when the player walks away.
+signal basket_opened(basket: Building)
+signal basket_closed
+
 enum Facing { DOWN, UP, LEFT, RIGHT }
 
 const GROUP := "player"
+const NEED_MATERIALS_HINT := "нужны материалы"
+const EMPTY_FIRST_HINT := "сначала выложи всё"
+const COMFORT_COLOR := Color("ffb37a")
+## Built last, it finishes step 1.
+const FINALE_BUILDING := "hut"
 ## sin(22.5°): input closer than this to vertical counts as straight up or down,
 ## anything else, diagonals included, faces left or right.
 const SIDE_FACING_MIN_X := 0.3827
@@ -39,6 +50,10 @@ var inventory: Inventory
 var progression: Progression
 var recipe_tree: RecipeTree
 var crafting: Crafting
+## Set by the main scene: in its mode for taking down, E takes buildings down.
+var build_mode: BuildMode
+## The basket the player has open, null if none.
+var open_basket: Building
 var is_resting := false
 var facing := Facing.DOWN
 
@@ -55,6 +70,13 @@ var _target: ResourceNode
 ## The tool the player works [member _target] with.
 var _tool: ToolStats
 var _highlighted: ResourceNode
+## The blueprint the player builds while holding the work button.
+var _site: Building
+## The building the player takes down while holding the work button.
+var _teardown: Building
+var _teardown_time := 0.0
+var _dismantle_time: float
+var _step_done := false
 var _hit_flash := 0.0
 var _level_flash := 0.0
 
@@ -73,6 +95,7 @@ func _ready() -> void:
 	progression.leveled_up.connect(_on_leveled_up)
 	recipe_tree = RecipeTree.new(GameData.table("recipe_tree"))
 	crafting = Crafting.new(GameData.table("recipes"), inventory, recipe_tree)
+	_dismantle_time = float(GameData.params("crafting").dismantle_time)
 	_tools = GameData.table("tools")
 	_hands_interval = float(gathering.hit_interval)
 	_work = WorkRhythm.new(_hands_interval)
@@ -96,6 +119,7 @@ func _physics_process(delta: float) -> void:
 		rest_rate = CampComfort.rest_rate(comfort, _rest_params)
 		regen_mult = CampComfort.rest_regen_mult(comfort, _rest_params)
 	stamina.update(delta, rest_rate, regen_mult)
+	_keep_basket_open()
 	_hit_flash = maxf(_hit_flash - delta, 0.0)
 	_level_flash = maxf(_level_flash - delta, 0.0)
 	queue_redraw()
@@ -127,7 +151,13 @@ func pick_up(item_id: String, amount := 1) -> void:
 ## Drops one item from slot [param index], or the whole stack, in front of the player.
 ## The pile is not pulled back until the player walks away from it.
 func drop_from_slot(index: int, whole_stack: bool) -> void:
-	var taken := inventory.take(index, inventory.slots[index].get("count", 0) if whole_stack else 1)
+	drop_from(inventory, index, whole_stack)
+
+
+## Drops from slot [param index] of [param slots_of], the player's inventory or
+## an open basket, in front of the player.
+func drop_from(slots_of: Inventory, index: int, whole_stack: bool) -> void:
+	var taken := slots_of.take(index, slots_of.slots[index].get("count", 0) if whole_stack else 1)
 	if taken.is_empty():
 		return
 	var item := GroundItem.new()
@@ -188,9 +218,16 @@ func _gather(delta: float) -> void:
 	var nearest := nearest_node(
 		get_tree().get_nodes_in_group(ResourceNode.GROUP), global_position, _interact_radius_px
 	)
-	if Input.is_action_just_pressed("interact") and not is_resting and nearest != null:
-		_start_work(nearest)
+	if build_mode != null and build_mode.is_dismantling():
+		_work.stop()
+		_target = null
+		_set_highlight(null)
+		_take_down(delta)
+		return
+	if Input.is_action_just_pressed("interact") and not is_resting:
+		_interact(nearest)
 	var held := Input.is_action_pressed("interact") and not is_resting
+	_build(delta, held)
 	if not held or not _can_keep_working():
 		_work.stop()
 		_target = null
@@ -218,6 +255,166 @@ func _start_work(node: ResourceNode) -> void:
 	_tool = ToolStats.new(tool_id, _tools, _hands_interval)
 	_work.interval = _tool.hit_interval
 	_work.start()
+
+
+## The work button acts on the nearest thing in reach: a resource node,
+## a blueprint or a basket.
+func _interact(nearest: ResourceNode) -> void:
+	var node_distance := INF
+	if nearest != null:
+		node_distance = global_position.distance_to(nearest.global_position)
+	var building := _nearest_building(true)
+	if building != null and building.distance_to(global_position) <= node_distance:
+		if building.is_blueprint:
+			_start_site(building)
+		else:
+			_open_basket(building)
+	elif nearest != null:
+		_start_work(nearest)
+
+
+## The nearest blueprint in reach, or null.
+func _nearest_blueprint() -> Building:
+	var building := _nearest_building(true)
+	return building if building != null and building.is_blueprint else null
+
+
+func _open_basket(basket: Building) -> void:
+	if open_basket == basket:
+		return
+	close_basket()
+	open_basket = basket
+	basket_opened.emit(basket)
+
+
+func close_basket() -> void:
+	if open_basket == null:
+		return
+	open_basket = null
+	basket_closed.emit()
+
+
+## A basket closes when the player walks away or it is taken down.
+func _keep_basket_open() -> void:
+	if open_basket == null:
+		return
+	if not is_instance_valid(open_basket) or not open_basket.is_inside_tree():
+		close_basket()
+	elif open_basket.distance_to(global_position) > _interact_radius_px:
+		close_basket()
+
+
+## The nearest building in reach, or null. With [param usable_only], only
+## buildings the work button does something with: blueprints and baskets.
+func _nearest_building(usable_only := false) -> Building:
+	var best: Building = null
+	var best_distance := _interact_radius_px
+	for building: Building in get_tree().get_nodes_in_group(Building.BUILDINGS_GROUP):
+		var distance := building.distance_to(global_position)
+		var usable := building.is_blueprint or building.storage != null
+		if (usable or not usable_only) and distance <= best_distance:
+			best = building
+			best_distance = distance
+	return best
+
+
+## In the mode for taking down: holding E at a building for dismantle_time
+## takes it down and gives the materials back. Rules: docs/systems/crafting.md, "Разбор".
+func _take_down(delta: float) -> void:
+	var held := Input.is_action_pressed("interact") and not is_resting
+	if Input.is_action_just_pressed("interact") and not is_resting:
+		_stop_take_down()
+		_teardown = _nearest_building()
+		if _teardown != null and not _teardown.can_dismantle():
+			var top := _teardown.position - Vector2(0, _teardown.size_px.y + 20)
+			FloatingText.spawn(get_parent(), top, EMPTY_FIRST_HINT, HINT_COLOR)
+			_teardown = null
+	if _teardown == null:
+		return
+	if not held or not is_instance_valid(_teardown):
+		_stop_take_down()
+		return
+	if _teardown.distance_to(global_position) > _interact_radius_px:
+		_stop_take_down()
+		return
+	_teardown_time += delta
+	_teardown.teardown = _teardown_time / _dismantle_time
+	if _teardown_time >= _dismantle_time:
+		var building := _teardown
+		_stop_take_down()
+		var share := float(GameData.params("crafting").dismantle_refund)
+		_take_back(building.refund(share), building.position)
+		building.queue_free()
+
+
+func _stop_take_down() -> void:
+	if is_instance_valid(_teardown):
+		_teardown.teardown = 0.0
+	_teardown = null
+	_teardown_time = 0.0
+
+
+## Materials back into the inventory, what does not fit falls in piles at [param at].
+func _take_back(materials: Dictionary, at: Vector2) -> void:
+	var y := -52.0
+	var piles := 0
+	for item_id: String in materials:
+		var count: int = materials[item_id]
+		var fit := inventory.carry_amount(item_id, count)
+		if fit > 0:
+			inventory.add(item_id, fit)
+			var text := "+%d %s" % [fit, _items[item_id].name]
+			FloatingText.spawn(get_parent(), position + Vector2(0, y), text)
+			y -= 14.0
+		if count > fit:
+			var pile := GroundItem.new()
+			pile.item_id = item_id
+			pile.count = count - fit
+			pile.position = at
+			pile.land_at = at + Vector2(-12 + 12 * piles, 10)
+			piles += 1
+			pile.wait_for_player_to_leave = true
+			get_parent().add_child(pile)
+
+
+## The work button at a blueprint: first every missing material from the
+## inventory goes in. Rules: docs/systems/crafting.md, "Постройки".
+func _start_site(site: Building) -> void:
+	_work.stop()
+	_target = null
+	_site = site
+	var top := site.position - Vector2(0, site.size_px.y + 20)
+	if not site.deliver_from(inventory).is_empty():
+		var percent := roundi(site.delivered_share() * 100.0)
+		FloatingText.spawn(get_parent(), top, "сдано %d%%" % percent)
+	elif not site.has_all_materials():
+		FloatingText.spawn(get_parent(), top, NEED_MATERIALS_HINT, HINT_COLOR)
+
+
+## While the button is held in reach, a blueprint with all materials is assembled.
+func _build(delta: float, held: bool) -> void:
+	if _site == null:
+		return
+	if not held or not is_instance_valid(_site) or not _site.is_blueprint:
+		_site = null
+	elif _site.distance_to(global_position) > _interact_radius_px:
+		_site = null
+	elif _site.assemble(delta):
+		_finish_building(_site)
+		_site = null
+
+
+func _finish_building(site: Building) -> void:
+	var comfort_before := Camp.comfort_at(get_tree(), site.global_position)
+	site.complete()
+	var comfort_gain := Camp.comfort_at(get_tree(), site.global_position) - comfort_before
+	var top := site.position - Vector2(0, site.size_px.y + 20)
+	if comfort_gain > 0:
+		FloatingText.spawn(get_parent(), top, "+%d комфорта" % comfort_gain, COMFORT_COLOR)
+	_gain_xp(crafting.finish_building(site.item_id), top - Vector2(0, 16), " · впервые")
+	if site.item_id == FINALE_BUILDING and not _step_done:
+		_step_done = true
+		step_completed.emit()
 
 
 ## Experience for a result, shown as "+N опыта" over [param at].

@@ -7,18 +7,24 @@ extends RefCounted
 ## [param item_ids] are comfort items inside the camp zone,
 ## [param item_table] is data/comfort_items.csv indexed by id.
 static func compute(item_ids: Array[String], item_table: Dictionary) -> int:
-	var best_by_group := {}
+	var total := 0
+	for best_id: String in best_by_group(item_ids, item_table).values():
+		total += int(item_table[best_id].comfort)
+	return total
+
+
+## The item with the highest comfort in each group, {group: item_id}.
+static func best_by_group(item_ids: Array[String], item_table: Dictionary) -> Dictionary:
+	var best := {}
 	for id in item_ids:
 		if not item_table.has(id):
 			push_warning("Unknown comfort item: %s" % id)
 			continue
 		var row: Dictionary = item_table[id]
 		var group: String = row.group
-		best_by_group[group] = maxi(best_by_group.get(group, 0), int(row.comfort))
-	var total := 0
-	for group_best: int in best_by_group.values():
-		total += group_best
-	return total
+		if group not in best or int(row.comfort) > int(item_table[best[group]].comfort):
+			best[group] = id
+	return best
 
 
 ## Fatigue removed per second while resting at [param comfort].

@@ -5,6 +5,8 @@ extends RefCounted
 
 ## One slot per entry: {"item_id": String, "count": int}, an empty slot is an empty Dictionary.
 var slots: Array[Dictionary] = []
+## The player's inventory has a load cap; a basket does not.
+var limit_weight := true
 
 var _params: Dictionary
 var _items: Dictionary
@@ -72,11 +74,30 @@ func space_for(item_id: String) -> int:
 ## How many of [param wanted] the player can pick up: they must fit into the slots,
 ## and the load after the pickup must not go above the cap.
 func carry_amount(item_id: String, wanted := 1) -> int:
-	var weight := float(_items[item_id].weight)
-	var by_weight := wanted
-	if weight > 0.0:
-		by_weight = floori((_carry_cap - carried_weight()) / weight + 0.0001)
-	return clampi(mini(wanted, mini(space_for(item_id), by_weight)), 0, wanted)
+	return clampi(mini(wanted, mini(space_for(item_id), weight_room_for(item_id))), 0, wanted)
+
+
+## How many of [param item_id] the load cap still lets in; no limit without one.
+func weight_room_for(item_id: String) -> int:
+	var weight := item_weight(item_id)
+	if not limit_weight or weight <= 0.0:
+		return 1_000_000
+	return floori((_carry_cap - carried_weight()) / weight + 0.0001)
+
+
+func item_weight(item_id: String) -> float:
+	return float(_items[item_id].weight)
+
+
+func stack_max(item_id: String) -> int:
+	return int(_items[item_id].stack_max)
+
+
+func is_empty() -> bool:
+	for slot in slots:
+		if not slot.is_empty():
+			return false
+	return true
 
 
 ## Adds up to [param amount] items by slot rules, ignoring weight. Returns how many were added.
@@ -109,6 +130,7 @@ func remove(item_id: String, amount: int) -> int:
 ## A copy with its own slots, to try a change before making it.
 func copy() -> Inventory:
 	var other := Inventory.new(_params, _items)
+	other.limit_weight = limit_weight
 	for i in slots.size():
 		other.slots[i] = slots[i].duplicate()
 	return other
