@@ -116,6 +116,19 @@ func test_stick_comes_back_away_from_the_player_and_camp_items() -> void:
 		assert_gte(stone.position.distance_to(fire.position), 1.5 * Units.TILE_PX)
 
 
+func test_stick_does_not_come_back_under_a_building() -> void:
+	var hut := Building.blueprint("hut", Vector2(0, 48))
+	world.add_child(hut)
+	var stones: Array[ResourceNode] = []
+	for i in 10:
+		var stone := _place("ground_stone", Vector2(i * 0.1, 0))
+		stone.hit()
+		_wait(stone, 120.0)
+		stones.append(stone)
+	for stone in stones:
+		assert_gte(hut.distance_to(stone.position), 1.5 * Units.TILE_PX)
+
+
 func test_nearest_workable_node_in_radius() -> void:
 	var far := _place("bush", Vector2(30, 0))
 	var near := _place("bush", Vector2(10, 0))

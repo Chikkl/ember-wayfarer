@@ -66,10 +66,12 @@ func preview_rect() -> Rect2:
 
 
 ## Whether a blueprint fits at [param rect]: close enough to the player and
-## clear of trees, stumps, bushes, buildings, the fire and the player.
-## Sticks and stones on the ground have no bodies and do not get in the way.
+## clear of trees, stumps, bushes, buildings, the fire, the player, sticks,
+## stones and piles.
 func can_place(rect: Rect2) -> bool:
 	if rect.get_center().distance_to(_player.global_position) > _build_radius_px:
+		return false
+	if _covers_ground_things(rect):
 		return false
 	var shape := RectangleShape2D.new()
 	shape.size = rect.size - Vector2(2, 2)
@@ -77,6 +79,18 @@ func can_place(rect: Rect2) -> bool:
 	query.shape = shape
 	query.transform = Transform2D(0.0, rect.get_center())
 	return get_world_2d().direct_space_state.intersect_shape(query, 1).is_empty()
+
+
+## Sticks, stones and piles have no bodies, so the physics query misses them,
+## and under a building they could not be picked up.
+func _covers_ground_things(rect: Rect2) -> bool:
+	for node: ResourceNode in get_tree().get_nodes_in_group(ResourceNode.GROUP):
+		if node.visible and rect.has_point(node.global_position):
+			return true
+	for item: GroundItem in get_tree().get_nodes_in_group(GroundItem.GROUP):
+		if rect.has_point(item.global_position):
+			return true
+	return false
 
 
 ## Puts a blueprint at the preview and leaves the mode. Null if it does not fit.

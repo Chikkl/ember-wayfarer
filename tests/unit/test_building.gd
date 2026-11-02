@@ -101,6 +101,29 @@ func test_blueprint_needs_free_ground_near_the_player() -> void:
 	assert_false(mode.can_place(Rect2(320, 0, 32, 32)), "Farther than 4 tiles")
 
 
+func test_blueprint_keeps_off_sticks_stones_and_piles() -> void:
+	var player: Player = PLAYER_SCENE.instantiate()
+	world.add_child(player)
+	var fire := Node2D.new()
+	world.add_child(fire)
+	var stick: ResourceNode = NODE_SCENE.instantiate()
+	stick.node_id = "ground_stick"
+	stick.position = Vector2(-48, 48)
+	world.add_child(stick)
+	var pile := GroundItem.new()
+	pile.item_id = "stone"
+	pile.position = Vector2(48, 48)
+	pile.land_at = pile.position
+	world.add_child(pile)
+	var mode := BuildMode.new()
+	world.add_child(mode)
+	mode.setup(player, fire)
+	await wait_physics_frames(2)
+	assert_false(mode.can_place(Rect2(-64, 32, 32, 32)), "A stick lies there")
+	assert_true(mode.can_place(Rect2(-64, 64, 32, 32)), "Next to the stick")
+	assert_false(mode.can_place(Rect2(32, 32, 32, 32)), "A pile lies there")
+
+
 func test_holding_e_delivers_and_builds() -> void:
 	var player: Player = PLAYER_SCENE.instantiate()
 	world.add_child(player)
