@@ -17,7 +17,7 @@
 | День и ночь | systems/day-night.md | Ядро, шаг 2 | Не начат |
 | Бой | systems/combat.md | Ядро, шаг 2 | Не начат |
 
-Ещё: [журнал решений](decisions.md) · [глоссарий](glossary.md)
+Ещё: [журнал решений](decisions.md) · [глоссарий](glossary.md) · [заметки плейтестов](notes.md)
 
 ## Концепция
 
