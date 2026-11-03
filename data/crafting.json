@@ -1,4 +1,6 @@
 {
   "_doc": "docs/systems/crafting.md",
-  "dismantle_refund": 1.0
+  "dismantle_refund": 1.0,
+  "dismantle_time": 1.0,
+  "build_radius": 4
 }

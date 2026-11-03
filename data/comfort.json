@@ -1,6 +1,7 @@
 {
   "_doc": "docs/systems/comfort.md",
   "camp_radius": 6,
-  "rest_fatigue_base": 2.0,
-  "rest_per_comfort": 1.0
+  "rest_fatigue_base": 1.0,
+  "rest_per_comfort": 2.0,
+  "rest_regen_per_comfort": 0.5
 }
